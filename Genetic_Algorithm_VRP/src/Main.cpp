@@ -4,10 +4,21 @@
 #include <vector>
 #include <random>
 
-#include"genetic.h"
+#include "Genetic.h"
+
+#ifdef _WIN32
+const std::string sPrefix = "../";
+#else
+const std::string sPrefix;
+#endif // _WIN32
+
+const std::string sInputFile = "Data/Romania.txt";
+//const std::string sInputFile = "Data/US.txt";
 
 int main() {
-
+	GeneticAlgorithm algo;
+	algo.ReadFile(sPrefix + sInputFile);
+	return 0;
 	// TODO: multithreading
 
 	int cityNb = 42;	// number of cities

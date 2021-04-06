@@ -1,6 +1,15 @@
 #include <vector>
 #include <random>
 
+struct Road
+{
+	std::string City1;
+	std::string City2;
+	int			Distance;
+
+	bool Parse(const std::string& roadString);
+};
+
 class GeneticAlgorithm
 {
 public:
@@ -14,14 +23,11 @@ public:
 private:
 	int**	mDistances;
 	int		mNumCities;
+
+	bool ParseRoad(Road& road);
 };
 
-struct Road
-{
-	std::string City1;
-	std::string City2;
-	int			Distance;
-};
+
 std::vector<std::vector<int>> inTxt(std::string path, int cityNb);
 
 std::vector<std::vector<int>> initPath(int route, int nb);

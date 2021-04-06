@@ -5,14 +5,40 @@
 #include <random>
 #include <chrono>
 #include <cmath>
+#include <map>
 
-#include "genetic.h"
+#include "Genetic.h"
+#include "Util.h"
+
+bool Road::Parse(const std::string& roadString)
+{
+	// Find important part
+	size_t openingBracket = roadString.find('(');
+	size_t closingBracket = roadString.find(')', openingBracket);
+
+	// Find first letter (non-whitespace) & end of city
+	size_t begin = Util::FindNextNonWhitespace(roadString, openingBracket);
+	size_t comma = roadString.find(',', begin);
+	City1 = roadString.substr(begin, comma - begin);
+
+	// Find next first letter & end of city
+	begin = Util::FindNextNonWhitespace(roadString, comma);
+	comma = roadString.find(',', begin);
+	City2 = roadString.substr(begin, comma - begin);
+
+	// Find first digit
+	begin = Util::FindNextNonWhitespace(roadString, comma);
+	Distance = std::stoi(roadString.substr(begin, closingBracket - begin));
+
+	return true;
+}
 
 GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
 {
 }
+
 GeneticAlgorithm::~GeneticAlgorithm()
 {
 	if (mDistances != nullptr)
@@ -27,39 +53,86 @@ GeneticAlgorithm::~GeneticAlgorithm()
 
 bool GeneticAlgorithm::ReadFile(std::string path)
 {
-	std::ifstream file(path);
-
-	std::string line;
 	std::vector<Road> roads;
-	std::vector<std::string> cities;
+	std::map<std::string, int> cities;
+	int cityCounter = 0;
 
-	//int lineCount = 0;
-	//int tempDis = 0;
-
+	// Load important data from file
+	std::ifstream file(path);
+	std::string line;
 	while (getline(file, line))
 	{
-		if (line[0] == '%')
+		size_t commentIndex = line.find('%');
+		if (commentIndex == 0U)	// Check if whole line is comment
 		{
 			continue;
 		}
 
-		//if(line.)
-		//int nb = 0;
+		if (Util::StartsWith(line, "road"))		// Load road if line starts with road
+		{
+			size_t end = std::string::npos;
+			size_t offset = 0U;
+			while ((end = line.find('.', offset)) != std::string::npos	// Find end of road, offset is used if multiple roads are in one line
+				   && end < commentIndex								// Check if found end is not after comment
+				   )
+			{
+				roads.push_back(Road());
+				roads[roads.size() - 1].Parse(line.substr(offset, end));	// Parse road string
+				offset = end + 1;
+			}
+		}
+		else if (Util::StartsWith(line, "city"))	// Load city
+		{
+			size_t begin = line.find('(') + 1;
+			size_t end = line.find(',');
+			cities.insert(std::pair<std::string, int>(line.substr(begin, end - begin), cityCounter++));
+		}
+	}
+	file.close();
 
-		//std::istringstream iss(line);
-		//while (iss >> tempDis && nb < cityNb)
-		//{
-
-		//	distance[lineCount][nb] = tempDis;
-		//	nb = nb + 1;
-
-		//}
-
-		//lineCount = lineCount + 1;
-
+	// Create array
+	mNumCities = cityCounter;
+	mDistances = new int* [mNumCities];
+	for (int i = 0; i < mNumCities; i++)
+	{
+		mDistances[i] = new int[mNumCities];
+		for (int j = 0; j < mNumCities; j++)
+		{
+			mDistances[i][j] = i == j ? 0 : -1;
+		}
 	}
 
-	//return distance;
+	for (const auto& road : roads)
+	{
+		int index1 = cities.at(road.City1);
+		int index2 = cities.at(road.City2);
+
+		mDistances[index1][index2] = road.Distance;
+		mDistances[index2][index1] = road.Distance;
+	}
+
+	// Debug print
+	//std::cout << "Roads:" << std::endl;
+	//for (const auto& road : roads)
+	//{
+	//	std::cout << road.City1 << "," << road.City2 << "," << std::to_string(road.Distance) << ";" << std::endl;
+	//}
+	//std::cout << "--------------------------" << std::endl;
+	//std::cout << "Cities:" << std::endl;
+	//for (const auto& city : cities)
+	//{
+	//	std::cout << city.first << ";" << std::endl;
+	//}
+	//std::cout << "--------------------------" << std::endl;
+	//std::cout << "Distances:" << std::endl;
+	//for (int i = 0; i < mNumCities; i++)
+	//{
+	//	for (int j = 0; j < mNumCities; j++)
+	//	{
+	//		std::cout << std::to_string(mDistances[i][j]) << " \t";
+	//	}
+	//	std::cout << std::endl;
+	//}
 	return true;
 }
 
