@@ -11,8 +11,10 @@ using std::vector;
 
 int main(int argc, char * argv[]) {
 
-	int cityNb = 42;
-	int route = 300;
+	// TODO: multithreading
+
+	int cityNb = 42;	// number of cities
+	int route = 300;	// population size
 	int ep = 5;
 	int iteration = 200;
 
@@ -25,6 +27,12 @@ int main(int argc, char * argv[]) {
 	vector<vector<int>>::const_iterator pRow;
 	vector<int>::const_iterator pCol;
 
+	// Output
+	// Gesamtdistanz aller Fahrzeuge: Distanz
+	// Vehicle 1 (Gesamtdistanz): StadtA -> StadtB -> StadtC -> etc. ... -> StadtA
+	// Vehicle 2 (Gesamtdistanz): StadtA -> StadtX -> StadtY -> etc. ... -> StadtA
+	// Vehicle 3 (Gesamtdistanz): etc.
+	// etc.
 	ofstream outputP("../Output/population.txt");
 	for (pRow = population.cbegin(); pRow != population.cend(); pRow++) {
 		for (pCol = (*pRow).cbegin(); pCol != (*pRow).cend(); pCol++) {
@@ -50,15 +58,15 @@ int main(int argc, char * argv[]) {
 
 	for (int j = 0; j < iteration; j++) {
 
-		population = mutate(population, range, routeLength);
-		population = change(population, 0.06, cityNb);
+		population = mutate(population, range, routeLength);	// eigentlich crossover
+		population = change(population, 0.06, cityNb);			// eigentlich mutation
 
 		vector<int> routeLength;
 		for (int i = 0; i < population.size(); i++) {
 			routeLength.push_back(fitness(population[i], distance));
 		}
 
-		mini[j] = saveMin(population, routeLength);
+		mini[j] = saveMin(population, routeLength);	// den besten von jeder Iteration abspeichern
 
 		vector<double> range = choseRange(routeLength, ep);
 
@@ -81,6 +89,7 @@ int main(int argc, char * argv[]) {
 	vector<int>::const_iterator fitIter = finalLength.cbegin();
 	int minFit = *fitIter;
 	int index = 0;
+	// Besten Fitness Value ( = Länge) raussuchen und ausgeben
 	for (; fitIter != finalLength.cend(); fitIter++) {
 		if (*fitIter < minFit) {
 			minFit = *fitIter;
@@ -88,6 +97,8 @@ int main(int argc, char * argv[]) {
 		}
 	}
 	cout << "Minimum length: " << minFit << endl;
+
+	// TODO: Output der von den Vehicles zurückgelegten Strecken
 
 	return 0;
 }

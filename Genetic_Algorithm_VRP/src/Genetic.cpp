@@ -12,7 +12,9 @@ using namespace std;
 using std::vector;
 
 vector<vector<int>> inTxt(string path, int cityNb) {
-
+	// TODO: parse our file
+	// Knotenpunkt ist die Stadt mit den meisten Straßenverbindungen, alternativ die Stadt die am zentralsten liegt
+	// Zwischenspeichern wie das danzig24 file (siehe Discord), wobei keine Straßenverbindungen mit -1 gekennzeichnet sind
 	ifstream infile(path);
 
 	string line;
@@ -44,6 +46,8 @@ vector<vector<int>> inTxt(string path, int cityNb) {
 vector<vector<int>> initPath(int route, int nb) {
 
 	vector<vector<int>> population(route, vector<int>(nb));
+	// vector<int>(routeVehicle1|blank|routeVehicle2|blank|routeVehicle3|blank|routeVehicle4|blank|routeVehicle5)	-> siehe Discord Paper
+	// Wichtig: gültige initiale Population erzeugen, sodass alle 5 Fahrzeuge ungefähr die gleiche Anzahl an Städten befahren 
 
 	default_random_engine generator(std::random_device{}());
 
@@ -75,8 +79,11 @@ vector<vector<int>> initPath(int route, int nb) {
 	return population;
 }
 
-int fitness(vector<int> sroute, vector<vector<int>> length) {
-
+int fitness(const vector<int>& sroute, const vector<vector<int>>& length) {
+	// Mittelwert der zurückgelegten Distanz der Trucks berechnen = Summe der einzelnen Truck-Distanzen/5
+	// Fitness ist Gewichtung1 (z.B. 0.5) * Summe der einzelnen Truck-Distanzen)/5 + Gewichtung2 (z.B. 0.5) * Gesamtstrecke aller Trucks
+	// Fitness Wert soll möglichst klein sein
+	// TODO: Wenn -1 ausgelesen wird -> durch INT_MAX ersetzen
 	int s = sroute.size();
 
 	int routeLength = 0;
@@ -89,6 +96,9 @@ int fitness(vector<int> sroute, vector<vector<int>> length) {
 }
 
 vector<double> choseRange(vector<int> fitness, int ep) {
+
+	// ???
+	// TODO: dont use this
 
 	vector<int>::const_iterator fitIter = fitness.cbegin();
 	int minFit = *fitIter;
@@ -105,7 +115,7 @@ vector<double> choseRange(vector<int> fitness, int ep) {
 	for (fitIter = fitness.cbegin(); fitIter != fitness.cend(); fitIter++) {
 		double ratio = double(*fitIter) / double(minFit);
 		double exponent = -pow(ratio, ep);
-		total += exp(exponent);
+		total += exp(exponent);	// das ergebnis von exp() ist zwischen 0 und 1
 		trueFitness.push_back(total);
 	}
 
@@ -114,16 +124,16 @@ vector<double> choseRange(vector<int> fitness, int ep) {
 		range[i] = trueFitness[i] / total;
 	}
 
-	return range;
+	return range;	// range[i] ist zwischen 0 und 1 und umso höher die Distanz zum minimalen Fitness Wert war, desto höher ist range[i]
 }
 
-vector<int> inheritance(vector<int> father, vector<int> mother) {
+vector<int> inheritance(const vector<int>& father, vector<int> mother) {
 
 	if (father.size() != mother.size()) {
 		cout << "Fuck! Length is different." << endl;
 	}
 
-	int s = father.size();
+	int s = father.size();	// Kind ist immer so groß wie der Vater, auch wenn Vater und Mutter unterschiedlich groß sind
 	default_random_engine generator(std::random_device{}());
 	uniform_int_distribution<int> distribution(0, s - 1);
 
@@ -131,6 +141,7 @@ vector<int> inheritance(vector<int> father, vector<int> mother) {
 	p1 = distribution(generator);
 	p2 = distribution(generator);
 
+	// Generiere zwei zufällige Werte, die nicht gleich sein dürfen und nicht größer als der Vater sein dürfen
 	while (p1 == p2) {
 		p2 = distribution(generator);
 	}
@@ -143,6 +154,7 @@ vector<int> inheritance(vector<int> father, vector<int> mother) {
 
 	vector<int> child(s);
 
+	// Alles was wir vom Vater nehmen, nehmen wir nicht von der Mutter (daher löschen wir es)
 	for (int i = p1; i <= p2; i++) {
 		for (int j = 0; j < (int)mother.size(); j++) {
 			if (mother[j] == father[i]) {
@@ -152,6 +164,7 @@ vector<int> inheritance(vector<int> father, vector<int> mother) {
 		}
 	}
 
+	// Kind mit Mutter und Vater befüllen
 	vector<int>::const_iterator mIter = mother.cbegin();
 	for (int i = 0; i < s; i++) {
 		if (i >= p1 && i <= p2) {
@@ -169,10 +182,12 @@ vector<int> inheritance(vector<int> father, vector<int> mother) {
 	//cout << "p1: " << p1 << endl;
 	//cout << "p2: " << p2 << endl;
 
-	return child;
+	return child;	// Kind ist geboren
 }
 
-vector<vector<int>> mutate(vector<vector<int>> population, vector<double> range, vector<int> fitness) {
+vector<vector<int>> mutate(const vector<vector<int>>& population, const vector<double>& range, const vector<int>& fitness) {
+
+	// TODO: Sortiere Population nach Fitness Value und wähle zufällig Vater + Mutter aus der besseren Hälfte 
 
 	int routeNb = population.size();
 
@@ -182,8 +197,9 @@ vector<vector<int>> mutate(vector<vector<int>> population, vector<double> range,
 	uniform_real_distribution<double> distribution(0, 1);
 	for (int i = 0; i < routeNb; i++) {
 		double randNb;
-		randNb = distribution(generator);
+		randNb = distribution(generator);	// Zufallszahl zwischen 0 und 1
 
+		// Wähle zufällig einen Vater, der in einem gewissen Bereich liegt
 		int parFather = 0;
 		for (int j = 1; j < range.size(); j++){
 			if (randNb <= range[0]) {
@@ -198,6 +214,7 @@ vector<vector<int>> mutate(vector<vector<int>> population, vector<double> range,
 
 		randNb = distribution(generator);
 
+		// Wähle zufällig eine Mutter, die in einem gewissen Bereich liegt
 		int parMother = 0;
 		for (int j = 1; j < range.size(); j++){
 			if (randNb <= range[0]) {
@@ -210,7 +227,7 @@ vector<vector<int>> mutate(vector<vector<int>> population, vector<double> range,
 			}
 		}
 
-
+		// Vater und Mutter müssen unterschiedlich sein
 		while (parFather == parMother){
 			randNb = distribution(generator);
 			for (int j = 1; j < range.size(); j++){
@@ -226,7 +243,7 @@ vector<vector<int>> mutate(vector<vector<int>> population, vector<double> range,
 		}
 
 		vector<int> child = inheritance(population[parFather], population[parMother]);
-		childGen.push_back(child);
+		childGen.push_back(child);	// Das soeben geborene Kind ist Teil der neuen Generation
 
 	}
 
@@ -239,13 +256,15 @@ vector<vector<int>> mutate(vector<vector<int>> population, vector<double> range,
 			index = fitIter - fitness.cbegin();
 		}
 	}
-	childGen.push_back(population[index]);
+	childGen.push_back(population[index]);	// Das beste alte Ding ist ebenfalls Teil der neuen Generation
+	// Damit wird unsere Population immer um 1 größer
 
 	return childGen;
 }
 
 vector<vector<int>> change(vector<vector<int>> population, double changeRate, int cityNb) {
 
+	// Mutationsfunktion
 	default_random_engine generator(std::random_device{}());
 	uniform_real_distribution<double> dis(0, 1);
 	uniform_int_distribution<int> disInt(0, cityNb - 1);
@@ -270,8 +289,9 @@ vector<vector<int>> change(vector<vector<int>> population, double changeRate, in
 	return population;
 }
 
-vector<int> saveMin(vector<vector<int>> population, vector<int> fitness) {
+vector<int> saveMin(const vector<vector<int>>& population, const vector<int>& fitness) {
 
+	// Bestes Ding abspeichern
 	vector<int>::const_iterator fitIter = fitness.cbegin();
 	int minFit = *fitIter;
 	int index = 0;
