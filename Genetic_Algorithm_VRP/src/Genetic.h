@@ -19,12 +19,9 @@ public:
 	bool ReadFile(std::string path);
 	bool CalculateMissingRoutes();
 
-
 private:
 	int**	mDistances;
 	int		mNumCities;
-
-	bool ParseRoad(Road& road);
 };
 
 

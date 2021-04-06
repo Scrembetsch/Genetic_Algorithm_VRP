@@ -18,6 +18,8 @@ const std::string sInputFile = "Data/Romania.txt";
 int main() {
 	GeneticAlgorithm algo;
 	algo.ReadFile(sPrefix + sInputFile);
+	algo.CalculateMissingRoutes();
+
 	return 0;
 	// TODO: multithreading
 
