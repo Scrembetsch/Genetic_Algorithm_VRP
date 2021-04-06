@@ -1,22 +1,18 @@
 #include <vector>
 #include <random>
 
+std::vector<std::vector<int>> inTxt(std::string path, int cityNb);
 
-using namespace std;
+std::vector<std::vector<int>> initPath(int route, int nb);
 
+int fitness(const std::vector<int>& sroute, const std::vector<std::vector<int>>& length);
 
-vector<vector<int>> inTxt(string path, int cityNb);
+std::vector<double> choseRange(std::vector<int> fitness, int ep);	// TODO: delete
 
-vector<vector<int>> initPath(int route, int nb);
+std::vector<int> inheritance(const std::vector<int>& father, std::vector<int> mother);
 
-int fitness(const vector<int>& sroute, const vector<vector<int>>& length);
+std::vector<std::vector<int>> mutate(const std::vector<std::vector<int>>& population, const std::vector<double>& range, const std::vector<int>& fitness);
 
-vector<double> choseRange(vector<int> fitness, int ep);	// TODO: delete
+std::vector<std::vector<int>> change(std::vector<std::vector<int>> population, double changeRate, int cityNb);
 
-vector<int> inheritance(const vector<int>& father, vector<int> mother);
-
-vector<vector<int>> mutate(const vector<vector<int>>& population, const vector<double>& range, const vector<int>& fitness);
-
-vector<vector<int>> change(vector<vector<int>> population, double changeRate, int cityNb);
-
-vector<int> saveMin(const vector<vector<int>>& population, const vector<int>& fitness);
+std::vector<int> saveMin(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness);
