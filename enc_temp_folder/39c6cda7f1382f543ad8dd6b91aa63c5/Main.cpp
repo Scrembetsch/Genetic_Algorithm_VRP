@@ -9,6 +9,7 @@
 using namespace std;
 using std::vector;
 
+
 int main(int argc, char * argv[]) {
 
 	int cityNb = 42;
