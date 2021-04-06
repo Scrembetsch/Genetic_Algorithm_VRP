@@ -8,6 +8,67 @@
 
 #include "genetic.h"
 
+GeneticAlgorithm::GeneticAlgorithm()
+	: mDistances(nullptr)
+	, mNumCities(0)
+{
+}
+GeneticAlgorithm::~GeneticAlgorithm()
+{
+	if (mDistances != nullptr)
+	{
+		for (int i = 0; i < mNumCities; i++)
+		{
+			delete[] mDistances[i];
+		}
+		delete[] mDistances;
+	}
+}
+
+bool GeneticAlgorithm::ReadFile(std::string path)
+{
+	std::ifstream file(path);
+
+	std::string line;
+	std::vector<Road> roads;
+	std::vector<std::string> cities;
+
+	//int lineCount = 0;
+	//int tempDis = 0;
+
+	while (getline(file, line))
+	{
+		if (line[0] == '%')
+		{
+			continue;
+		}
+
+		//if(line.)
+		//int nb = 0;
+
+		//std::istringstream iss(line);
+		//while (iss >> tempDis && nb < cityNb)
+		//{
+
+		//	distance[lineCount][nb] = tempDis;
+		//	nb = nb + 1;
+
+		//}
+
+		//lineCount = lineCount + 1;
+
+	}
+
+	//return distance;
+	return true;
+}
+
+bool GeneticAlgorithm::CalculateMissingRoutes()
+{
+	// TODO: Needs to be done if normal attempt provides no results
+	return true;
+}
+
 std::vector<std::vector<int>> inTxt(std::string path, int cityNb) {
 	// TODO: parse our file
 	// Knotenpunkt ist die Stadt mit den meisten Straﬂenverbindungen, alternativ die Stadt die am zentralsten liegt

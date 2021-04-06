@@ -1,6 +1,27 @@
 #include <vector>
 #include <random>
 
+class GeneticAlgorithm
+{
+public:
+	GeneticAlgorithm();
+	~GeneticAlgorithm();
+
+	bool ReadFile(std::string path);
+	bool CalculateMissingRoutes();
+
+
+private:
+	int**	mDistances;
+	int		mNumCities;
+};
+
+struct Road
+{
+	std::string City1;
+	std::string City2;
+	int			Distance;
+};
 std::vector<std::vector<int>> inTxt(std::string path, int cityNb);
 
 std::vector<std::vector<int>> initPath(int route, int nb);
