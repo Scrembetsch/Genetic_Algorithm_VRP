@@ -38,6 +38,7 @@ bool Road::Parse(const std::string& roadString)
 GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
+	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 {
 }
 
@@ -50,6 +51,33 @@ GeneticAlgorithm::~GeneticAlgorithm()
 			delete[] mDistances[i];
 		}
 		delete[] mDistances;
+	}
+}
+
+void GeneticAlgorithm::SolveVRP()
+{
+	std::vector<std::vector<int>> population = InitPopulation();
+
+	std::vector<int> routeLength;
+	for (int i = 0; i < mPopulationSize; i++) 
+	{
+		routeLength.push_back(EvaluateFitness(population[i]));
+	}
+
+	// TODO: Multithreading
+	for (int j = 0; j < mIterations; j++) 
+	{
+
+		population = CreateNewGeneration(population, routeLength);
+		population = Mutate(population);
+
+		std::vector<int> routeLength;
+		for (int i = 0; i < (int)population.size(); i++) 
+		{
+			routeLength.push_back(EvaluateFitness(population[i]));
+		}
+
+		mBestSolutions[j] = SaveBest(population, routeLength);	// Save the best of each iteration
 	}
 }
 
@@ -217,56 +245,27 @@ void GeneticAlgorithm::PrintDistances()
 	}
 }
 
-std::vector<std::vector<int>> inTxt(std::string path, int cityNb) {
-	// TODO: parse our file
-	// Knotenpunkt ist die Stadt mit den meisten Straßenverbindungen, alternativ die Stadt die am zentralsten liegt
-	// Zwischenspeichern wie das danzig24 file (siehe Discord), wobei keine Straßenverbindungen mit -1 gekennzeichnet sind
-	std::ifstream infile(path);
-
-	std::string line;
-	std::vector<std::vector<int>> distance(cityNb, std::vector<int>(cityNb));
-
-	int lineCount = 0;
-	int tempDis = 0;
-
-
-	while (getline(infile, line)) {
-
-		int nb = 0;
-
-		std::istringstream iss(line);
-		while (iss >> tempDis && nb < cityNb) {
-
-			distance[lineCount][nb] = tempDis;
-			nb = nb + 1;
-
-		}
-
-		lineCount = lineCount + 1;
-
-	}
-
-	return distance;
-}
-
-std::vector<std::vector<int>> initPath(int route, int nb) {
-
-	std::vector<std::vector<int>> population(route, std::vector<int>(nb));
+std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation() 
+{
+	std::vector<std::vector<int>> population(mPopulationSize, std::vector<int>(mNumCities));
 	// std::vector<int>(routeVehicle1|blank|routeVehicle2|blank|routeVehicle3|blank|routeVehicle4|blank|routeVehicle5)	-> siehe Discord Paper
 	// Wichtig: gültige initiale Population erzeugen, sodass alle 5 Fahrzeuge ungefähr die gleiche Anzahl an Städten befahren
 
 	std::default_random_engine generator(std::random_device{}());
 
 	int city;
-	for (int i = 0; i < route; i++) {
+	for (int i = 0; i < mPopulationSize; i++)
+	{
 
 		std::vector<int> place;
-		for (int k = 0; k < nb; k++) {
+		for (int k = 0; k < mNumCities; k++) 
+		{
 			place.push_back(k);
 		}
 
-		int s = nb;
-		for (int j = 0; j < nb; j++) {
+		int s = mNumCities;
+		for (int j = 0; j < mNumCities; j++) 
+		{
 
 
 			std::uniform_int_distribution<int> distribution(0, s - 1);
@@ -285,57 +284,60 @@ std::vector<std::vector<int>> initPath(int route, int nb) {
 	return population;
 }
 
-int fitness(const std::vector<int>& sroute, const std::vector<std::vector<int>>& length) {
+int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) 
+{
 	// Mittelwert der zurückgelegten Distanz der Trucks berechnen = Summe der einzelnen Truck-Distanzen/5
 	// Fitness ist Gewichtung1 (z.B. 0.5) * Summe der einzelnen Truck-Distanzen)/5 + Gewichtung2 (z.B. 0.5) * Gesamtstrecke aller Trucks
 	// Fitness Wert soll möglichst klein sein
 	// TODO: Wenn -1 ausgelesen wird -> durch INT_MAX ersetzen
-	int s = sroute.size();
+	int s = populationRoute.size();
 
 	int routeLength = 0;
-	for (int i = 1; i < s; i++) {
-		routeLength += length[sroute[i - 1]][sroute[i]];
+	for (int i = 1; i < s; i++) 
+	{
+		routeLength += mDistances[populationRoute[i - 1]][populationRoute[i]];
 	}
-	routeLength += length[sroute[s - 1]][sroute[0]];
+	routeLength += mDistances[populationRoute[s - 1]][populationRoute[0]];
 
 	return routeLength;
 }
 
-std::vector<double> choseRange(std::vector<int> fitness, int ep) {
+//std::vector<double> choseRange(std::vector<int> fitness, int ep) {
+//
+//	// ???
+//	// TODO: dont use this
+//
+//	std::vector<int>::const_iterator fitIter = fitness.cbegin();
+//	int minFit = *fitIter;
+//	for (; fitIter != fitness.cend(); fitIter++) {
+//		if (*fitIter < minFit) {
+//			minFit = *fitIter;
+//		}
+//	}
+//
+//	//cout << "Minimun distance: " << minFit << endl;
+//
+//	std::vector<double> trueFitness;
+//	double total = 0;
+//	for (fitIter = fitness.cbegin(); fitIter != fitness.cend(); fitIter++) {
+//		double ratio = double(*fitIter) / double(minFit);
+//		double exponent = -pow(ratio, ep);
+//		total += exp(exponent);	// das ergebnis von exp() ist zwischen 0 und 1
+//		trueFitness.push_back(total);
+//	}
+//
+//	std::vector<double> range(fitness.size());
+//	for (int i = 0; i < (int)fitness.size(); i++) {
+//		range[i] = trueFitness[i] / total;
+//	}
+//
+//	return range;	// range[i] ist zwischen 0 und 1 und umso höher die Distanz zum minimalen Fitness Wert war, desto höher ist range[i]
+//}
 
-	// ???
-	// TODO: dont use this
-
-	std::vector<int>::const_iterator fitIter = fitness.cbegin();
-	int minFit = *fitIter;
-	for (; fitIter != fitness.cend(); fitIter++) {
-		if (*fitIter < minFit) {
-			minFit = *fitIter;
-		}
-	}
-
-	//cout << "Minimun distance: " << minFit << endl;
-
-	std::vector<double> trueFitness;
-	double total = 0;
-	for (fitIter = fitness.cbegin(); fitIter != fitness.cend(); fitIter++) {
-		double ratio = double(*fitIter) / double(minFit);
-		double exponent = -pow(ratio, ep);
-		total += exp(exponent);	// das ergebnis von exp() ist zwischen 0 und 1
-		trueFitness.push_back(total);
-	}
-
-	std::vector<double> range(fitness.size());
-	for (int i = 0; i < (int)fitness.size(); i++) {
-		range[i] = trueFitness[i] / total;
-	}
-
-	return range;	// range[i] ist zwischen 0 und 1 und umso höher die Distanz zum minimalen Fitness Wert war, desto höher ist range[i]
-}
-
-std::vector<int> inheritance(const std::vector<int>& father, std::vector<int> mother) {
-
-	if (father.size() != mother.size()) {
+std::vector<int> GeneticAlgorithm::Crossover(const std::vector<int>& father, std::vector<int> mother) 
+{
+	if (father.size() != mother.size()) 
+	{
 		std::cout << "Fuck! Length is different." << std::endl;
 	}
 
@@ -348,11 +350,13 @@ std::vector<int> inheritance(const std::vector<int>& father, std::vector<int> mo
 	p2 = distribution(generator);
 
 	// Generiere zwei zufällige Werte, die nicht gleich sein dürfen und nicht größer als der Vater sein dürfen
-	while (p1 == p2) {
+	while (p1 == p2) 
+	{
 		p2 = distribution(generator);
 	}
 
-	if (p1 > p2) {
+	if (p1 > p2) 
+	{
 		int temp = p1;
 		p1 = p2;
 		p2 = temp;
@@ -361,9 +365,12 @@ std::vector<int> inheritance(const std::vector<int>& father, std::vector<int> mo
 	std::vector<int> child(s);
 
 	// Alles was wir vom Vater nehmen, nehmen wir nicht von der Mutter (daher löschen wir es)
-	for (int i = p1; i <= p2; i++) {
-		for (int j = 0; j < (int)mother.size(); j++) {
-			if (mother[j] == father[i]) {
+	for (int i = p1; i <= p2; i++) 
+	{
+		for (int j = 0; j < (int)mother.size(); j++) 
+		{
+			if (mother[j] == father[i]) 
+			{
 				mother.erase(mother.begin() + j);
 				break;
 			}
@@ -372,13 +379,17 @@ std::vector<int> inheritance(const std::vector<int>& father, std::vector<int> mo
 
 	// Kind mit Mutter und Vater befüllen
 	std::vector<int>::const_iterator mIter = mother.cbegin();
-	for (int i = 0; i < s; i++) {
-		if (i >= p1 && i <= p2) {
+	for (int i = 0; i < s; i++) 
+	{
+		if (i >= p1 && i <= p2) 
+		{
 			child[i] = father[i];
 		}
-		else {
+		else 
+		{
 			child[i] = *mIter;
-			if (mIter != mother.cend()) {
+			if (mIter != mother.cend()) 
+			{
 				mIter++;
 			}
 		}
@@ -391,9 +402,11 @@ std::vector<int> inheritance(const std::vector<int>& father, std::vector<int> mo
 	return child;	// Kind ist geboren
 }
 
-std::vector<std::vector<int>> mutate(const std::vector<std::vector<int>>& population, const std::vector<double>& range, const std::vector<int>& fitness) {
-
+std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness) 
+{
 	// TODO: Sortiere Population nach Fitness Value und wähle zufällig Vater + Mutter aus der besseren Hälfte
+
+	std::vector<double> range;	// TODO: get rid of stupid range
 
 	int routeNb = population.size();
 
@@ -401,18 +414,22 @@ std::vector<std::vector<int>> mutate(const std::vector<std::vector<int>>& popula
 
 	std::vector<std::vector<int>> childGen;
 	std::uniform_real_distribution<double> distribution(0, 1);
-	for (int i = 0; i < routeNb; i++) {
+	for (int i = 0; i < routeNb; i++) 
+	{
 		double randNb;
 		randNb = distribution(generator);	// Zufallszahl zwischen 0 und 1
 
 		// Wähle zufällig einen Vater, der in einem gewissen Bereich liegt
 		int parFather = 0;
-		for (int j = 1; j < (int)range.size(); j++){
-			if (randNb <= range[0]) {
+		for (int j = 1; j < (int)range.size(); j++)
+		{
+			if (randNb <= range[0]) 
+			{
 				parFather = 0;
 				break;
 			}
-			else if (randNb > range[j - 1] && randNb <= range[j]){
+			else if (randNb > range[j - 1] && randNb <= range[j])
+			{
 				parFather = j;
 				break;
 			}
@@ -422,33 +439,40 @@ std::vector<std::vector<int>> mutate(const std::vector<std::vector<int>>& popula
 
 		// Wähle zufällig eine Mutter, die in einem gewissen Bereich liegt
 		int parMother = 0;
-		for (int j = 1; j < (int)range.size(); j++){
-			if (randNb <= range[0]) {
+		for (int j = 1; j < (int)range.size(); j++)
+		{
+			if (randNb <= range[0]) 
+			{
 				parMother = 0;
 				break;
 			}
-			else if (randNb > range[j - 1] && randNb <= range[j]){
+			else if (randNb > range[j - 1] && randNb <= range[j])
+			{
 				parMother = j;
 				break;
 			}
 		}
 
 		// Vater und Mutter müssen unterschiedlich sein
-		while (parFather == parMother){
+		while (parFather == parMother)
+		{
 			randNb = distribution(generator);
-			for (int j = 1; j < (int)range.size(); j++){
-				if (randNb <= range[0]) {
+			for (int j = 1; j < (int)range.size(); j++)
+			{
+				if (randNb <= range[0]) 
+				{
 					parMother = 0;
 					break;
 				}
-				else if (randNb > range[j - 1] && randNb <= range[j]){
+				else if (randNb > range[j - 1] && randNb <= range[j])
+				{
 					parMother = j;
 					break;
 				}
 			}
 		}
 
-		std::vector<int> child = inheritance(population[parFather], population[parMother]);
+		std::vector<int> child = Crossover(population[parFather], population[parMother]);
 		childGen.push_back(child);	// Das soeben geborene Kind ist Teil der neuen Generation
 
 	}
@@ -456,8 +480,10 @@ std::vector<std::vector<int>> mutate(const std::vector<std::vector<int>>& popula
 	std::vector<int>::const_iterator fitIter = fitness.cbegin();
 	int minFit = *fitIter;
 	int index = 0;
-	for (; fitIter != fitness.cend(); fitIter++) {
-		if (*fitIter < minFit) {
+	for (; fitIter != fitness.cend(); fitIter++) 
+	{
+		if (*fitIter < minFit) 
+		{
 			minFit = *fitIter;
 			index = fitIter - fitness.cbegin();
 		}
@@ -468,21 +494,24 @@ std::vector<std::vector<int>> mutate(const std::vector<std::vector<int>>& popula
 	return childGen;
 }
 
-std::vector<std::vector<int>> change(std::vector<std::vector<int>> population, double changeRate, int cityNb) {
-
+std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<int>> population) 
+{
 	// Mutationsfunktion
 	std::default_random_engine generator(std::random_device{}());
 	std::uniform_real_distribution<double> dis(0, 1);
-	std::uniform_int_distribution<int> disInt(0, cityNb - 1);
+	std::uniform_int_distribution<int> disInt(0, mNumCities - 1);
 
-	for (int i = 0; i < (int)population.size(); i++) {
+	for (int i = 0; i < (int)population.size(); i++) 
+	{
 		double r = dis(generator);
-		if (r >= changeRate) {
+		if (r >= mMutationRate) 
+		{
 			int first, second;
 			first = disInt(generator);
 			second = disInt(generator);
 
-			while (first == second) {
+			while (first == second) 
+			{
 				second = disInt(generator);
 			}
 
@@ -495,18 +524,44 @@ std::vector<std::vector<int>> change(std::vector<std::vector<int>> population, d
 	return population;
 }
 
-std::vector<int> saveMin(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness) {
-
+std::vector<int> GeneticAlgorithm::SaveBest(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness) 
+{
 	// Bestes Ding abspeichern
 	std::vector<int>::const_iterator fitIter = fitness.cbegin();
 	int minFit = *fitIter;
 	int index = 0;
-	for (; fitIter != fitness.cend(); fitIter++) {
-		if (*fitIter < minFit) {
+	for (; fitIter != fitness.cend(); fitIter++) 
+	{
+		if (*fitIter < minFit) 
+		{
 			minFit = *fitIter;
 			index = fitIter - fitness.cbegin();
 		}
 	}
 
 	return population[index];
+}
+
+void GeneticAlgorithm::PrintOutput(std::vector<std::vector<int>> bestSolutions)
+{
+	// TODO: Adjust
+
+	// Find the best one (the one with minimal distance driven)
+	std::vector<int> finalLength;
+	for (int i = 0; i < mIterations; i++) 
+	{
+		finalLength.push_back(EvaluateFitness(bestSolutions[i]));
+	}
+
+	std::vector<int>::const_iterator fitIter = finalLength.cbegin();
+	int minFit = *fitIter;
+	// Besten Fitness Value ( = Länge) raussuchen und ausgeben
+	for (; fitIter != finalLength.cend(); fitIter++) 
+	{
+		if (*fitIter < minFit) 
+		{
+			minFit = *fitIter;
+		}
+	}
+	std::cout << "Minimum length: " << minFit << std::endl;
 }
