@@ -1,8 +1,8 @@
 SRC_DIR := Genetic_Algorithm_VRP/src
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,%.o,$(SRC_FILES))
-LDFLAGS := -lm
-CXXFLAGS := -Wall -Wextra -Werror -pedantic -O3
+LDFLAGS := -lm -fopenmp
+CXXFLAGS := -Wall -fopenmp -Wextra -Werror -pedantic -O3
 
 .DEFAULT_GOAL := VRP
 

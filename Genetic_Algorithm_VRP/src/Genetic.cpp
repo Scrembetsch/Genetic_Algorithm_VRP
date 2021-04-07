@@ -196,7 +196,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 			}
 		}
 
-		PrintDistances();
+		//PrintDistances();
 	}
 	// Debug print
 	//std::cout << "Roads:" << std::endl;

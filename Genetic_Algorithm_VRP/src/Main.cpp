@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <omp.h>
+#include <thread>
 
 #include "Genetic.h"
 #include "Timing.h"
@@ -16,20 +18,60 @@ const std::string sPrefix;
 const std::string sInputFile = "Data/Romania.txt";
 //const std::string sInputFile = "Data/US.txt";
 
-int main() {
-	GeneticAlgorithm algo;
+int NumThreads = 4;
 
-	algo.ReadFile(sPrefix + sInputFile, true);
+void LoadArguments(int argc, char** argv)
+{
+    bool threadsProvided = false;
 
-	algo.SolveVRP();
+    for (int i = 1; i < argc; i++)
+    {
+        std::string arg(argv[i]);
+        if (arg == "--threads")
+        {
+            if ((i + 1) < argc)
+            {
+                NumThreads = std::stoi(argv[i + 1]);
+                threadsProvided = true;
+            }
+        }
+    }
+    if (!threadsProvided)
+    {
+        NumThreads = std::thread::hardware_concurrency();
+    }
+	std::cout << "Using Threads: " << NumThreads << std::endl;
+}
 
-	const std::vector<int>& solution = algo.GetBest();
+int main(int argc, char** argv) {
+	LoadArguments(argc, argv);
+
+	std::vector<GeneticAlgorithm> algos;
+	algos.push_back(GeneticAlgorithm());
+
+	algos[0].ReadFile(sPrefix + sInputFile, true);
+	
+	for (int i = 1; i < NumThreads; i++)
+	{
+		algos.push_back(GeneticAlgorithm(algos[0]));
+	}
+
+#pragma omp parallel for
+	for (int i = 0; i < NumThreads; i++)
+	{
+		std::cout << "Started Thread " << std::to_string(i) << std::endl;
+		algos[i].SolveVRP();
+	}
+
+	//algo.SolveVRP();
+
+	//const std::vector<int>& solution = algo.GetBest();
 
 	// Output - Test
 	//algo.mDepot = 0;
 	//std::vector<int> solution = { 1,2,GeneticAlgorithm::sBlank, 10, 11,12,14,GeneticAlgorithm::sBlank, 13,15,7,8 };
 
-	algo.PrintOutput(solution);
+	//algo.PrintOutput(solution);
 
 	return 0;
 
