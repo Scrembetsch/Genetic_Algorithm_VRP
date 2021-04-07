@@ -5,6 +5,7 @@
 #include <random>
 
 #include "Genetic.h"
+#include "Timing.h"
 
 #ifdef _WIN32
 const std::string sPrefix = "../";
@@ -17,8 +18,7 @@ const std::string sInputFile = "Data/Romania.txt";
 
 int main() {
 	GeneticAlgorithm algo;
-	algo.ReadFile(sPrefix + sInputFile);
-	algo.CalculateMissingRoutes();
+	algo.ReadFile(sPrefix + sInputFile, true);
 
 	return 0;
 	// TODO: multithreading

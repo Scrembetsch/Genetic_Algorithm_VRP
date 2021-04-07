@@ -8,6 +8,8 @@
 #include <map>
 
 #include "Genetic.h"
+#include "PathFinder.h"
+#include "Timing.h"
 #include "Util.h"
 
 bool Road::Parse(const std::string& roadString)
@@ -51,10 +53,10 @@ GeneticAlgorithm::~GeneticAlgorithm()
 	}
 }
 
-bool GeneticAlgorithm::ReadFile(std::string path)
+bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 {
 	std::vector<Road> roads;
-	std::map<std::string, int> cities;
+	std::map<std::string, int> cityMap;
 	int cityCounter = 0;
 
 	// Load important data from file
@@ -85,7 +87,9 @@ bool GeneticAlgorithm::ReadFile(std::string path)
 		{
 			size_t begin = line.find('(') + 1;
 			size_t end = line.find(',');
-			cities.insert(std::pair<std::string, int>(line.substr(begin, end - begin), cityCounter++));
+			std::string city = line.substr(begin, end - begin);
+			cityMap.insert(std::pair<std::string, int>(city, cityCounter++));
+			mCities.push_back(city);
 		}
 	}
 	file.close();
@@ -104,13 +108,43 @@ bool GeneticAlgorithm::ReadFile(std::string path)
 
 	for (const auto& road : roads)
 	{
-		int index1 = cities.at(road.City1);
-		int index2 = cities.at(road.City2);
+		int index1 = cityMap.at(road.City1);
+		int index2 = cityMap.at(road.City2);
 
 		mDistances[index1][index2] = road.Distance;
 		mDistances[index2][index1] = road.Distance;
 	}
 
+	//PrintDistances();
+	if (calculateMissingRoutes)
+	{
+		// Create adjMatrix for PathFinder
+		PathFinder graph;
+		for (int i = 0; i < mNumCities; i++)
+		{
+			PathFinder::VPII a;
+			for (int j = 0; j < mNumCities; j++)
+			{
+				if (mDistances[i][j] != 0 && mDistances[i][j] != -1)
+				{
+					a.push_back(PathFinder::PII(j, mDistances[i][j]));
+				}
+			}
+			graph.Graph.push_back(a);
+		}
+
+		// Find and write shortest routes
+		for (int i = 0; i < mNumCities; i++)
+		{
+			std::vector<int> dist = graph.ShortestPath(i);
+			for (int j = 0; j < mNumCities; j++)
+			{
+				mDistances[i][j] = dist[j];
+			}
+		}
+
+		//PrintDistances();
+	}
 	// Debug print
 	//std::cout << "Roads:" << std::endl;
 	//for (const auto& road : roads)
@@ -124,22 +158,63 @@ bool GeneticAlgorithm::ReadFile(std::string path)
 	//	std::cout << city.first << ";" << std::endl;
 	//}
 	//std::cout << "--------------------------" << std::endl;
-	//std::cout << "Distances:" << std::endl;
-	//for (int i = 0; i < mNumCities; i++)
-	//{
-	//	for (int j = 0; j < mNumCities; j++)
-	//	{
-	//		std::cout << std::to_string(mDistances[i][j]) << " \t";
-	//	}
-	//	std::cout << std::endl;
-	//}
+
 	return true;
 }
 
-bool GeneticAlgorithm::CalculateMissingRoutes()
+int GeneticAlgorithm::OptimatizeRoutes()
 {
-	// TODO: Needs to be done if normal attempt provides no results
-	return true;
+	for (int i = 0; i < mNumCities; i++)
+	{
+		for (int j = 0; j < i; j++)
+		{
+			mDistances[i][j] = FindShortestPath(i, i, j, 0);
+			// TODO: Mirror data
+		}
+	}
+	return -1;
+}
+
+int GeneticAlgorithm::FindShortestPath(int start, int current, int destination, int currentDistance)
+{
+	int shortestPath = INT32_MAX;
+	for (int i = 0; i < mNumCities; i++)
+	{
+		if (i == start || i == current || mDistances[current][i] == -1)
+		{
+			continue;
+		}
+		if (i == destination)
+		{
+			return mDistances[current][destination];
+		}
+		currentDistance += FindShortestPath(start, i, destination, currentDistance);
+		if (currentDistance < shortestPath)
+		{
+			shortestPath = currentDistance;
+		}
+	}
+	return shortestPath;
+}
+
+void GeneticAlgorithm::PrintDistances()
+{
+	std::cout << "Distances:" << std::endl;
+	std::cout << "  \t";
+	for (int i = 0; i < mNumCities; i++)
+	{
+		std::cout << char('A' + i) << " \t";
+	}
+	std::cout << std::endl;
+	for (int i = 0; i < mNumCities; i++)
+	{
+		std::cout << char('A' + i) << " \t";
+		for (int j = 0; j < mNumCities; j++)
+		{
+			std::cout << std::to_string(mDistances[i][j]) << " \t";
+		}
+		std::cout << std::endl;
+	}
 }
 
 std::vector<std::vector<int>> inTxt(std::string path, int cityNb) {

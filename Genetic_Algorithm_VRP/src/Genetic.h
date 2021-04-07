@@ -16,12 +16,17 @@ public:
 	GeneticAlgorithm();
 	~GeneticAlgorithm();
 
-	bool ReadFile(std::string path);
-	bool CalculateMissingRoutes();
+	bool ReadFile(std::string path, bool calculateMissingRoutes);
 
-private:
 	int**	mDistances;
 	int		mNumCities;
+
+	std::vector<std::string>	mCities;
+
+private:
+	int OptimatizeRoutes();
+	int FindShortestPath(int start, int current, int destination, int currentDistance);
+	void PrintDistances();
 };
 
 
