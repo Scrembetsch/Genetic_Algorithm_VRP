@@ -16,6 +16,7 @@ public:
 	static const int sBlank = -42;
 
 	GeneticAlgorithm();
+	GeneticAlgorithm(const GeneticAlgorithm& ga);
 	~GeneticAlgorithm();
 
 	bool ReadFile(std::string path, bool calculateMissingRoutes);
@@ -29,7 +30,7 @@ public:
 	const std::vector<int>& GetBest() const;
 	void PrintOutput(const std::vector<int>& solution) const;
 
-	int**	mDistances;
+	int**	mDistances;				// All distances between cities
 	int		mNumCities;				// Number of cities
 	int		mPopulationSize;		// Initial population size
 	int		mIterations;			// Number of iterations 	

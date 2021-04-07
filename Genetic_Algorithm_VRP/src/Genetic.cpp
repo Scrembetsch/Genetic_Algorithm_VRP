@@ -41,8 +41,30 @@ GeneticAlgorithm::GeneticAlgorithm()
 	, mPopulationSize(300)
 	, mIterations(200)
 	, mMutationRate(0.1)
+	, mDepot(0)
 	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 {
+}
+
+GeneticAlgorithm::GeneticAlgorithm(const GeneticAlgorithm& ga)
+	: mDistances(nullptr)
+	, mNumCities(ga.mNumCities)
+	, mPopulationSize(ga.mPopulationSize)
+	, mIterations(ga.mIterations)
+	, mMutationRate(ga.mMutationRate)
+	, mDepot(ga.mDepot)
+	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
+
+{
+	mDistances = new int* [mNumCities];
+	for (int i = 0; i < mNumCities; i++)
+	{
+		mDistances[i] = new int[mNumCities];
+		for (int j = 0; j < mNumCities; j++)
+		{
+			mDistances[i][j] = ga.mDistances[i][j];
+		}
+	}
 }
 
 GeneticAlgorithm::~GeneticAlgorithm()
