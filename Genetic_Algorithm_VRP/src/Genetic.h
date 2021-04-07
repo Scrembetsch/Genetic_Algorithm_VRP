@@ -13,31 +13,33 @@ struct Road
 class GeneticAlgorithm
 {
 public:
+	static const int sBlank = -42;
+
 	GeneticAlgorithm();
 	~GeneticAlgorithm();
 
 	bool ReadFile(std::string path, bool calculateMissingRoutes);
 	void SolveVRP();
 	std::vector<std::vector<int>> InitPopulation();
-	int EvaluateFitness(const std::vector<int>& populationRoute);
+	int EvaluateFitness(const std::vector<int>& populationRoute) const;
 	std::vector<std::vector<int>> CreateNewGeneration(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness);
 	std::vector<int> Crossover(const std::vector<int>& father, std::vector<int> mother);
 	std::vector<std::vector<int>> Mutate(std::vector<std::vector<int>> population);
 	std::vector<int> SaveBest(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness);
-	void PrintOutput(std::vector<std::vector<int>> bestSolutions);
+	const std::vector<int>& GetBest() const;
+	void PrintOutput(const std::vector<int>& solution) const;
 
 	int**	mDistances;
 	int		mNumCities;				// Number of cities
-	int		mPopulationSize = 300;	// Initial population size
-	int		mIterations = 200;		// Number of iterations 	
-	double	mMutationRate = 0.1;	// Probability of mutation
+	int		mPopulationSize;		// Initial population size
+	int		mIterations;			// Number of iterations 	
+	double	mMutationRate;			// Probability of mutation
+	int		mDepot;					// City where it all starts
 
 	std::vector<std::string>		mCities;
 	std::vector<std::vector<int>>	mBestSolutions;
 
 private:
-	int OptimatizeRoutes();
-	int FindShortestPath(int start, int current, int destination, int currentDistance);
 	void PrintDistances();
 };
 

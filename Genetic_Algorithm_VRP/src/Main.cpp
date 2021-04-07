@@ -23,7 +23,13 @@ int main() {
 
 	algo.SolveVRP();
 
-	algo.PrintOutput(algo.mBestSolutions);
+	const std::vector<int>& solution = algo.GetBest();
+
+	// Output - Test
+	// algo.mDepot = 0;
+	//std::vector<int> solution = { 1,2,GeneticAlgorithm::sBlank, 10, 11,12,14,GeneticAlgorithm::sBlank, 13,15,7,8 };
+
+	algo.PrintOutput(solution);
 
 	return 0;
 

@@ -38,6 +38,9 @@ bool Road::Parse(const std::string& roadString)
 GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
+	, mPopulationSize(300)
+	, mIterations(200)
+	, mMutationRate(0.1)
 	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 {
 }
@@ -171,7 +174,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 			}
 		}
 
-		//PrintDistances();
+		PrintDistances();
 	}
 	// Debug print
 	//std::cout << "Roads:" << std::endl;
@@ -188,41 +191,6 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 	//std::cout << "--------------------------" << std::endl;
 
 	return true;
-}
-
-int GeneticAlgorithm::OptimatizeRoutes()
-{
-	for (int i = 0; i < mNumCities; i++)
-	{
-		for (int j = 0; j < i; j++)
-		{
-			mDistances[i][j] = FindShortestPath(i, i, j, 0);
-			// TODO: Mirror data
-		}
-	}
-	return -1;
-}
-
-int GeneticAlgorithm::FindShortestPath(int start, int current, int destination, int currentDistance)
-{
-	int shortestPath = INT32_MAX;
-	for (int i = 0; i < mNumCities; i++)
-	{
-		if (i == start || i == current || mDistances[current][i] == -1)
-		{
-			continue;
-		}
-		if (i == destination)
-		{
-			return mDistances[current][destination];
-		}
-		currentDistance += FindShortestPath(start, i, destination, currentDistance);
-		if (currentDistance < shortestPath)
-		{
-			shortestPath = currentDistance;
-		}
-	}
-	return shortestPath;
 }
 
 void GeneticAlgorithm::PrintDistances()
@@ -284,7 +252,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 	return population;
 }
 
-int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) 
+int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) const
 {
 	// Mittelwert der zurückgelegten Distanz der Trucks berechnen = Summe der einzelnen Truck-Distanzen/5
 	// Fitness ist Gewichtung1 (z.B. 0.5) * Summe der einzelnen Truck-Distanzen)/5 + Gewichtung2 (z.B. 0.5) * Gesamtstrecke aller Trucks
@@ -542,26 +510,74 @@ std::vector<int> GeneticAlgorithm::SaveBest(const std::vector<std::vector<int>>&
 	return population[index];
 }
 
-void GeneticAlgorithm::PrintOutput(std::vector<std::vector<int>> bestSolutions)
+const std::vector<int>& GeneticAlgorithm::GetBest() const
 {
-	// TODO: Adjust
+	auto currentBestIt = mBestSolutions.begin();
+	int currentBest = INT32_MAX;
 
-	// Find the best one (the one with minimal distance driven)
-	std::vector<int> finalLength;
-	for (int i = 0; i < mIterations; i++) 
+	// Find the best (= smallest) Fitness Value
+	for (auto it = mBestSolutions.begin(); it != mBestSolutions.end(); it++)
 	{
-		finalLength.push_back(EvaluateFitness(bestSolutions[i]));
-	}
-
-	std::vector<int>::const_iterator fitIter = finalLength.cbegin();
-	int minFit = *fitIter;
-	// Besten Fitness Value ( = Länge) raussuchen und ausgeben
-	for (; fitIter != finalLength.cend(); fitIter++) 
-	{
-		if (*fitIter < minFit) 
+		int fitness = EvaluateFitness(*it);
+		if (fitness < currentBest)
 		{
-			minFit = *fitIter;
+			currentBest = fitness;
+			currentBestIt = it;
 		}
 	}
-	std::cout << "Minimum length: " << minFit << std::endl;
+
+	return *currentBestIt;
+}
+
+void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
+{
+	//// Output
+	//// Gesamtdistanz aller Fahrzeuge: Distanz
+	//// Vehicle 1 (Gesamtdistanz): StadtA -> StadtB -> StadtC -> etc. ... -> StadtA
+	//// Vehicle 2 (Gesamtdistanz): StadtA -> StadtX -> StadtY -> etc. ... -> StadtA
+	//// Vehicle 3 (Gesamtdistanz): etc.
+	//// etc.
+
+	std::string output = "Gesamtdistanz aller Fahrzeuge: ";
+	std::vector<std::string> vehicleStrings;
+	int completeDistance = 0;
+	int vehicleDistance = 0;
+	for (size_t i = 0; i <= solution.size(); i++)
+	{
+		if (i == solution.size() || solution[i] == sBlank)
+		{
+			// Build Output String (add vehicle details whenever a blank is discovered or the end is reached)
+			vehicleDistance += mDistances[solution[i - 1]][mDepot];
+			completeDistance += vehicleDistance;
+			std::string frontInfo = "Vehicle " + std::to_string(vehicleStrings.size()) + "(" + std::to_string(vehicleDistance) + "): ";
+			vehicleStrings[vehicleStrings.size() - 1].insert(0, frontInfo);
+			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[mDepot];
+			vehicleDistance = 0;
+		}
+		else
+		{
+			if (vehicleDistance == 0)
+			{
+				// Increase travelled distance and add starting city
+				vehicleDistance += mDistances[mDepot][solution[i]];
+				vehicleStrings.push_back(mCities[mDepot]);
+			}
+			else
+			{
+				// Increase travelled distance
+				vehicleDistance += mDistances[solution[i - 1]][solution[i]];
+			}
+			// Add visited city
+			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[solution[i]];
+		}
+	}
+
+	output += std::to_string(completeDistance) + "\n";
+
+	// Print Output-String to Console
+	for (const auto& vehicle : vehicleStrings)
+	{
+		output += vehicle + "\n";
+	}
+	std::cout << output << std::endl;
 }
