@@ -43,14 +43,17 @@ void LoadArguments(int argc, char** argv)
 	std::cout << "Using Threads: " << NumThreads << std::endl;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
 	LoadArguments(argc, argv);
 
 	std::vector<GeneticAlgorithm> algos;
-	algos.push_back(GeneticAlgorithm());
 
+	// Create default object and read file one time, then copy
+	algos.push_back(GeneticAlgorithm());
 	algos[0].ReadFile(sPrefix + sInputFile, true);
 	
+	// Copy object with parsed input
 	for (int i = 1; i < NumThreads; i++)
 	{
 		algos.push_back(GeneticAlgorithm(algos[0]));
@@ -59,19 +62,31 @@ int main(int argc, char** argv) {
 #pragma omp parallel for
 	for (int i = 0; i < NumThreads; i++)
 	{
+		// Start needed threads
 		std::cout << "Started Thread " << std::to_string(i) << std::endl;
 		algos[i].SolveVRP();
 	}
 
-	//algo.SolveVRP();
+	// Find best solution in all started threads
+	int bestFitness = INT32_MAX;
+	int bestIndex = 0;
+	for (int i = 0; i < NumThreads; i++)
+	{
+		int fitness = algos[i].EvaluateFitness(algos[i].GetBest());
+		if (fitness < bestFitness)
+		{
+			bestFitness = fitness;
+			bestIndex = i;
+		}
+	}
 
-	//const std::vector<int>& solution = algo.GetBest();
+	const std::vector<int>& solution = algos[bestIndex].GetBest();
 
 	// Output - Test
 	//algo.mDepot = 0;
 	//std::vector<int> solution = { 1,2,GeneticAlgorithm::sBlank, 10, 11,12,14,GeneticAlgorithm::sBlank, 13,15,7,8 };
-
-	//algo.PrintOutput(solution);
+	// Print best solution
+	algos[bestIndex].PrintOutput(solution);
 
 	return 0;
 
