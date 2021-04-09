@@ -237,37 +237,40 @@ void GeneticAlgorithm::PrintDistances()
 
 std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation() 
 {
-	std::vector<std::vector<int>> population(mPopulationSize, std::vector<int>(mNumCities));
+	std::vector<std::vector<int>> population(mPopulationSize, std::vector<int>(mNumCities + (sVehicles - 1)));// Cities + blanks 
 	// std::vector<int>(routeVehicle1|blank|routeVehicle2|blank|routeVehicle3|blank|routeVehicle4|blank|routeVehicle5)	-> siehe Discord Paper
-	// Wichtig: gültige initiale Population erzeugen, sodass alle 5 Fahrzeuge ungefähr die gleiche Anzahl an Städten befahren
+	// Wichtig: gültige initiale Population erzeugen, sodass alle 5 Fahrzeuge ungefähr die gleiche Anzahl an Städten befahren   <--- Anzahl der Städte pro Route ist random weil sie nicht wirklich Einfluss auf die tatsächliche Länge der Strecke hat (Irena)
 
 	std::default_random_engine generator(std::random_device{}());
 
 	int city;
 	for (int i = 0; i < mPopulationSize; i++)
 	{
-
+		// Add all cities to array
 		std::vector<int> place;
 		for (int k = 0; k < mNumCities; k++) 
 		{
 			place.push_back(k);
 		}
+		// Add blanks to array
+		for (int k = 0; k < sVehicles - 1; k++)
+		{
+			place.push_back(sBlank);
+		}
 
+		// Swap cities and blanks randomly
 		int s = mNumCities;
 		for (int j = 0; j < mNumCities; j++) 
 		{
-
-
 			std::uniform_int_distribution<int> distribution(0, s - 1);
 
 			city = distribution(generator);
 			population[i][j] = place[city];
 
-			int temp = place[s - 1];
-			place[city] = temp;
+			//int temp = place[s - 1];
+			place[city] = place[s - 1];
 			place.pop_back();
 			s = s - 1;
-
 		}
 	}
 

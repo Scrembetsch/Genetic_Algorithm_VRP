@@ -14,6 +14,7 @@ class GeneticAlgorithm
 {
 public:
 	static const int sBlank = -42;
+	static const int sVehicles = 5;
 
 	GeneticAlgorithm();
 	GeneticAlgorithm(const GeneticAlgorithm& ga);
