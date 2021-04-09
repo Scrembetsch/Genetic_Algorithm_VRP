@@ -324,72 +324,186 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 //	return range;	// range[i] ist zwischen 0 und 1 und umso höher die Distanz zum minimalen Fitness Wert war, desto höher ist range[i]
 //}
 
-std::vector<int> GeneticAlgorithm::Crossover(const std::vector<int>& father, std::vector<int> mother) 
+int* GeneticAlgorithm::createInversionSequence(std::vector<int> individual)
 {
-	if (father.size() != mother.size()) 
+	int* inversionSequence = new int[individual.size()];
+
+	for (int i = 0; i < individual.size(); i++)
 	{
-		std::cout << "Fuck! Length is different." << std::endl;
+		int counter = 0;
+
+		for (int j = 0; j < individual.size(); j++)
+		{
+			if (individual[j] == i + 1)
+				break;
+
+			if (individual[j] > i + 1)
+				counter++;
+		}
+		inversionSequence[i] = counter;
 	}
 
-	int s = father.size();	// Kind ist immer so groß wie der Vater, auch wenn Vater und Mutter unterschiedlich groß sind
-	std::default_random_engine generator(std::random_device{}());
-	std::uniform_int_distribution<int> distribution(0, s - 1);
+	return inversionSequence;
+}
 
-	int p1, p2;
-	p1 = distribution(generator);
-	p2 = distribution(generator);
+std::vector<int> GeneticAlgorithm::recreateNumbers(int* inversionSequence, int size)
+{
+	int* positions = new int[size];
+	std::vector<int> square(size);
 
-	// Generiere zwei zufällige Werte, die nicht gleich sein dürfen und nicht größer als der Vater sein dürfen
-	while (p1 == p2) 
+	for (int i = (size - 1); i >= 0; i--)
 	{
-		p2 = distribution(generator);
+		int additionValue = 1;
+		int currentValue = inversionSequence[i];
+		positions[i] = currentValue;
+
+		while (i + additionValue <= (size - 1))
+		{
+			if (positions[i + additionValue] >= positions[i])
+			{
+				positions[i + additionValue]++;
+			}
+
+			additionValue++;
+		}
 	}
 
-	if (p1 > p2) 
+	for (int i = 0; i < size; i++)
 	{
-		int temp = p1;
-		p1 = p2;
-		p2 = temp;
+		int insertPosition = positions[i];
+		square[insertPosition] = (i + 1);
 	}
+
+	delete[] positions;
+
+	return square;
+}
+
+std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vector<int> mother) 
+{
+	//if (father.size() != mother.size()) 
+	//{
+	//	std::cout << "Fuck! Length is different." << std::endl;
+	//}
+
+	//int s = father.size();	// Kind ist immer so groß wie der Vater, auch wenn Vater und Mutter unterschiedlich groß sind
+	//std::default_random_engine generator(std::random_device{}());
+	//std::uniform_int_distribution<int> distribution(0, s - 1);
+
+	//int p1, p2;
+	//p1 = distribution(generator);
+	//p2 = distribution(generator);
+
+	//// Generiere zwei zufällige Werte, die nicht gleich sein dürfen und nicht größer als der Vater sein dürfen
+	//while (p1 == p2) 
+	//{
+	//	p2 = distribution(generator);
+	//}
+
+	//if (p1 > p2) 
+	//{
+	//	int temp = p1;
+	//	p1 = p2;
+	//	p2 = temp;
+	//}
+
+	//std::vector<int> child(s);
+
+	//// Alles was wir vom Vater nehmen, nehmen wir nicht von der Mutter (daher löschen wir es)
+	//for (int i = p1; i <= p2; i++) 
+	//{
+	//	for (int j = 0; j < (int)mother.size(); j++) 
+	//	{
+	//		if (mother[j] == father[i]) 
+	//		{
+	//			mother.erase(mother.begin() + j);
+	//			break;
+	//		}
+	//	}
+	//}
+
+	//// Kind mit Mutter und Vater befüllen
+	//std::vector<int>::const_iterator mIter = mother.cbegin();
+	//for (int i = 0; i < s; i++) 
+	//{
+	//	if (i >= p1 && i <= p2) 
+	//	{
+	//		child[i] = father[i];
+	//	}
+	//	else 
+	//	{
+	//		child[i] = *mIter;
+	//		if (mIter != mother.cend()) 
+	//		{
+	//			mIter++;
+	//		}
+	//	}
+
+	//}
+
+	////cout << "p1: " << p1 << endl;
+	////cout << "p2: " << p2 << endl;
+
+	//return child;	// Kind ist geboren
+
+	
+
+	int s = father.size();
 
 	std::vector<int> child(s);
 
-	// Alles was wir vom Vater nehmen, nehmen wir nicht von der Mutter (daher löschen wir es)
-	for (int i = p1; i <= p2; i++) 
+	//to replace the blanks with mNumCities, mNumCities+1,...
+	//because the algorithm works only in a number sequence where each number is unique
+	int fatherOffset = 0;
+	int motherOffset = 0;
+
+	for (int i=0; i < s; i++)
 	{
-		for (int j = 0; j < (int)mother.size(); j++) 
+		if (father[i] == sBlank)
 		{
-			if (mother[j] == father[i]) 
-			{
-				mother.erase(mother.begin() + j);
-				break;
-			}
+			father[i] = mNumCities + fatherOffset;
+			fatherOffset++;
+		}
+		if (mother[i] == sBlank)
+		{
+			mother[i] = mNumCities + motherOffset;
+			motherOffset++;
 		}
 	}
 
-	// Kind mit Mutter und Vater befüllen
-	std::vector<int>::const_iterator mIter = mother.cbegin();
-	for (int i = 0; i < s; i++) 
-	{
-		if (i >= p1 && i <= p2) 
-		{
-			child[i] = father[i];
-		}
-		else 
-		{
-			child[i] = *mIter;
-			if (mIter != mother.cend()) 
-			{
-				mIter++;
-			}
-		}
+	int* inversionSequenceP1;
+	inversionSequenceP1 = createInversionSequence(father);
 
+	int* inversionSequenceP2;
+	inversionSequenceP2 = createInversionSequence(mother);
+
+	int min = s * 0.2;
+	int max = s * 0.8;
+
+	std::default_random_engine generator(std::random_device{}());
+	std::uniform_int_distribution<int> distribution(min, max);
+
+	int crossoverPoint = distribution(generator) + 1;
+	int* inversionSequenceChild = new int[s];
+
+	std::copy(inversionSequenceP1, inversionSequenceP1 + crossoverPoint, inversionSequenceChild);
+	std::copy(inversionSequenceP2 + crossoverPoint, inversionSequenceP2 + s, inversionSequenceChild + crossoverPoint);
+
+	child = recreateNumbers(inversionSequenceChild, s);
+
+	delete[] inversionSequenceP1;
+	delete[] inversionSequenceP2;
+	delete[] inversionSequenceChild;
+
+	for (int i = 0; i < s; i++)
+	{
+		if (child[i] >= mNumCities)
+		{
+			child[i] = sBlank;
+		}
 	}
 
-	//cout << "p1: " << p1 << endl;
-	//cout << "p2: " << p2 << endl;
-
-	return child;	// Kind ist geboren
+	return child;
 }
 
 std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness) 
