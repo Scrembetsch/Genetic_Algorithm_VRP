@@ -24,10 +24,11 @@ public:
 	void SolveVRP();
 	std::vector<std::vector<int>> InitPopulation();
 	int EvaluateFitness(const std::vector<int>& populationRoute) const;
-	std::vector<std::vector<int>> CreateNewGeneration(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness);
+	std::vector<std::vector<int>> CreateNewGeneration(std::vector<std::vector<int>> population, std::vector<int> fitness);
 	int* createInversionSequence(std::vector<int> individual);
 	std::vector<int> recreateNumbers(int* inversionSequence, int size);
 	std::vector<int> Crossover(std::vector<int> father, std::vector<int> mother);
+	void sort(std::vector<std::vector<int>>& population, std::vector<int>& fitness, int l, int r);
 	std::vector<std::vector<int>> Mutate(std::vector<std::vector<int>> population);
 	std::vector<int> SaveBest(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness);
 	const std::vector<int>& GetBest() const;

@@ -259,8 +259,8 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 		}
 
 		// Swap cities and blanks randomly
-		int s = mNumCities;
-		for (int j = 0; j < mNumCities; j++) 
+		int s = mNumCities + sVehicles - 1;
+		for (int j = 0; j < mNumCities + sVehicles - 1; j++) 
 		{
 			std::uniform_int_distribution<int> distribution(0, s - 1);
 
@@ -282,7 +282,8 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 	// Mittelwert der zurückgelegten Distanz der Trucks berechnen = Summe der einzelnen Truck-Distanzen/5
 	// Fitness ist Gewichtung1 (z.B. 0.5) * Summe der einzelnen Truck-Distanzen)/5 + Gewichtung2 (z.B. 0.5) * Gesamtstrecke aller Trucks
 	// Fitness Wert soll möglichst klein sein
-	// TODO: Wenn -1 ausgelesen wird -> durch INT_MAX ersetzen
+	// TODO: Wenn sBlank ausgelesen wird -> durch INT_MAX ersetzen
+	//TODO: Split in 4 different routes
 	int s = populationRoute.size();
 
 	int routeLength = 0;
@@ -509,96 +510,142 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 	return child;
 }
 
-std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness) 
+void GeneticAlgorithm::sort(std::vector<std::vector<int>>& population, std::vector<int>& fitness, int l, int r)
 {
-	// TODO: Sortiere Population nach Fitness Value und wähle zufällig Vater + Mutter aus der besseren Hälfte
+	int i = l;
+	int j = r;
+	int bufferFitness;
+	std::vector<int> bufferPopulation;
+	int pivot = fitness[(l + r) / 2];
+	while (i <= j) {
+		while (fitness[i] < pivot)
+		{
+			i++;
+		}
+		while (fitness[j] > pivot)
+		{
+			j--;
+		}
 
-	std::vector<double> range;	// TODO: get rid of stupid range
+		if (i <= j) 
+		{
+			bufferFitness = fitness[i];
+			fitness[i] = fitness[j];
+			fitness[j] = bufferFitness;
+			bufferPopulation = population[i];
+			population[i] = population[j];
+			population[j] = bufferPopulation;
+			i++;
+			j--;
+		}
+	}
+	if (l < j)
+		sort(population, fitness, l, j);
+	if (i < r)
+		sort(population, fitness, i, r);
+}
 
-	int routeNb = population.size();
+std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<std::vector<int>> population, std::vector<int> fitness) 
+{
+	//// TODO: Sortiere Population nach Fitness Value und wähle zufällig Vater + Mutter aus der besseren Hälfte
+
+	//std::vector<double> range;	// TODO: get rid of stupid range
+
+	//int routeNb = population.size();
+
+	//std::default_random_engine generator(std::random_device{}());
+
+	//std::vector<std::vector<int>> childGen;
+	//std::uniform_real_distribution<double> distribution(0, 1);
+	//for (int i = 0; i < routeNb; i++) 
+	//{
+	//	double randNb;
+	//	randNb = distribution(generator);	// Zufallszahl zwischen 0 und 1
+
+	//	// Wähle zufällig einen Vater, der in einem gewissen Bereich liegt
+	//	int parFather = 0;
+	//	for (int j = 1; j < (int)range.size(); j++)
+	//	{
+	//		if (randNb <= range[0]) 
+	//		{
+	//			parFather = 0;
+	//			break;
+	//		}
+	//		else if (randNb > range[j - 1] && randNb <= range[j])
+	//		{
+	//			parFather = j;
+	//			break;
+	//		}
+	//	}
+
+	//	randNb = distribution(generator);
+
+	//	// Wähle zufällig eine Mutter, die in einem gewissen Bereich liegt
+	//	int parMother = 0;
+	//	for (int j = 1; j < (int)range.size(); j++)
+	//	{
+	//		if (randNb <= range[0]) 
+	//		{
+	//			parMother = 0;
+	//			break;
+	//		}
+	//		else if (randNb > range[j - 1] && randNb <= range[j])
+	//		{
+	//			parMother = j;
+	//			break;
+	//		}
+	//	}
+
+	//	// Vater und Mutter müssen unterschiedlich sein
+	//	while (parFather == parMother)
+	//	{
+	//		randNb = distribution(generator);
+	//		for (int j = 1; j < (int)range.size(); j++)
+	//		{
+	//			if (randNb <= range[0]) 
+	//			{
+	//				parMother = 0;
+	//				break;
+	//			}
+	//			else if (randNb > range[j - 1] && randNb <= range[j])
+	//			{
+	//				parMother = j;
+	//				break;
+	//			}
+	//		}
+	//	}
 
 	std::default_random_engine generator(std::random_device{}());
+	std::uniform_real_distribution<double> distribution(0, population.size()/2);
+
 
 	std::vector<std::vector<int>> childGen;
-	std::uniform_real_distribution<double> distribution(0, 1);
-	for (int i = 0; i < routeNb; i++) 
+	sort(population, fitness, 0, fitness.size() - 1);
+
+	std::vector<std::vector<int>> new_population;
+	for (unsigned int i = 0; i < population.size() / 2; i++)
 	{
-		double randNb;
-		randNb = distribution(generator);	// Zufallszahl zwischen 0 und 1
-
-		// Wähle zufällig einen Vater, der in einem gewissen Bereich liegt
-		int parFather = 0;
-		for (int j = 1; j < (int)range.size(); j++)
+		
+		int randomNum1 = distribution(generator);
+		int randomNum2 = distribution(generator);
+		if (randomNum1 == randomNum2)
 		{
-			if (randNb <= range[0]) 
-			{
-				parFather = 0;
-				break;
-			}
-			else if (randNb > range[j - 1] && randNb <= range[j])
-			{
-				parFather = j;
-				break;
-			}
+			i--;
+			continue;
 		}
+		new_population.push_back(population[i]);
 
-		randNb = distribution(generator);
+		std::vector<int> father = population[randomNum1];
+		std::vector<int> mother = population[randomNum2];
 
-		// Wähle zufällig eine Mutter, die in einem gewissen Bereich liegt
-		int parMother = 0;
-		for (int j = 1; j < (int)range.size(); j++)
-		{
-			if (randNb <= range[0]) 
-			{
-				parMother = 0;
-				break;
-			}
-			else if (randNb > range[j - 1] && randNb <= range[j])
-			{
-				parMother = j;
-				break;
-			}
-		}
+		std::vector<int> child = Crossover(father, mother);
 
-		// Vater und Mutter müssen unterschiedlich sein
-		while (parFather == parMother)
-		{
-			randNb = distribution(generator);
-			for (int j = 1; j < (int)range.size(); j++)
-			{
-				if (randNb <= range[0]) 
-				{
-					parMother = 0;
-					break;
-				}
-				else if (randNb > range[j - 1] && randNb <= range[j])
-				{
-					parMother = j;
-					break;
-				}
-			}
-		}
-
-		std::vector<int> child = Crossover(population[parFather], population[parMother]);
-		childGen.push_back(child);	// Das soeben geborene Kind ist Teil der neuen Generation
-
+		new_population.push_back(child);
 	}
+	population = new_population;
+	new_population.clear();
 
-	std::vector<int>::const_iterator fitIter = fitness.cbegin();
-	int minFit = *fitIter;
-	int index = 0;
-	for (; fitIter != fitness.cend(); fitIter++) 
-	{
-		if (*fitIter < minFit) 
-		{
-			minFit = *fitIter;
-			index = fitIter - fitness.cbegin();
-		}
-	}
-	childGen.push_back(population[index]);	// Das beste alte Ding ist ebenfalls Teil der neuen Generation
-	// Damit wird unsere Population immer um 1 größer
-
-	return childGen;
+	return new_population;
 }
 
 std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<int>> population) 
