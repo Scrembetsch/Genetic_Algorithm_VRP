@@ -6,6 +6,7 @@
 #include <omp.h>
 #include <thread>
 
+#include "ArgumentParser.h"
 #include "Genetic.h"
 #include "GraphDrawer.h"
 #include "Timing.h"
@@ -24,28 +25,11 @@ bool VisualMode = false;
 
 void LoadArguments(int argc, char** argv)
 {
-    bool threadsProvided = false;
+	ArgumentParser parser(argc, argv);
 
-    for (int i = 1; i < argc; i++)
-    {
-        std::string arg(argv[i]);
-        if (arg == "--threads")
-        {
-            if ((i + 1) < argc)
-            {
-                NumThreads = std::stoi(argv[i + 1]);
-                threadsProvided = true;
-            }
-        }
-		if (arg == "--visual")
-		{
-			VisualMode = true;
-		}
-    }
-    if (!threadsProvided)
-    {
-        NumThreads = std::thread::hardware_concurrency();
-    }
+	NumThreads = parser.GetInt("-t", "--threads", std::thread::hardware_concurrency());
+	VisualMode = parser.CheckIfExists("-v", "--visual");
+
 	std::cout << "Using Threads: " << NumThreads << std::endl;
 }
 
