@@ -272,6 +272,34 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 			place.pop_back();
 			s = s - 1;
 		}
+		
+		// Check if no base station is set and if routes of first and last vehicle is empty
+		if (population[i].front() == sBlank || population[i][1] == sBlank || population[i][population[i].back() == sBlank])
+		{
+			// Reset loop and generate a new version for this individual
+			--i;
+			continue;
+		}
+
+		bool hasEmptyRoutes = false;
+		// Check if there are blanks next to each other 
+		for (int j = 1; j < population[i].size(); j++)//start on second index to prevent out of bounds when checking previus element
+		{
+			// If both previous and current element are blanks
+			if (population[i][j] == sBlank && population[i][j - 1] == sBlank)
+			{
+				// Mark as invalid and kill this loop
+				hasEmptyRoutes = true;
+				break;
+			}
+		}
+
+		if (hasEmptyRoutes)
+		{
+			// Reset loop and generate a new version for this individual
+			--i;
+			continue;
+		}
 	}
 
 	return population;
