@@ -49,7 +49,6 @@ public:
 	int		mPopulationSize;		// Initial population size
 	int		mIterations;			// Number of iterations
 	double	mMutationRate;			// Probability of mutation
-	int		mDepot;					// City where it all starts
 
 	std::vector<City>				mCities;
 	std::vector<std::vector<int>>	mBestSolutions;

@@ -67,7 +67,6 @@ GeneticAlgorithm::GeneticAlgorithm()
 	, mPopulationSize(300)
 	, mIterations(200)
 	, mMutationRate(0.1)
-	, mDepot(0)
 	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 {
 }
@@ -78,7 +77,6 @@ GeneticAlgorithm::GeneticAlgorithm(const GeneticAlgorithm& ga)
 	, mPopulationSize(ga.mPopulationSize)
 	, mIterations(ga.mIterations)
 	, mMutationRate(ga.mMutationRate)
-	, mDepot(ga.mDepot)
 	, mCities(ga.mCities)
 	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 
@@ -812,11 +810,11 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 		if (i == solution.size() || solution[i] == sBlank)
 		{
 			// Build Output String (add vehicle details whenever a blank is discovered or the end is reached)
-			vehicleDistance += mDistances[solution[i - 1]][mDepot];
+			vehicleDistance += mDistances[solution[i - 1]][solution[0]];
 			completeDistance += vehicleDistance;
 			std::string frontInfo = "Vehicle " + std::to_string(vehicleStrings.size()) + "(" + std::to_string(vehicleDistance) + "): ";
 			vehicleStrings[vehicleStrings.size() - 1].insert(0, frontInfo);
-			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[mDepot].Name;
+			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[solution[0]].Name;
 			vehicleDistance = 0;
 		}
 		else
@@ -824,8 +822,8 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 			if (vehicleDistance == 0)
 			{
 				// Increase travelled distance and add starting city
-				vehicleDistance += mDistances[mDepot][solution[i]];
-				vehicleStrings.push_back(mCities[mDepot].Name);
+				vehicleDistance += mDistances[solution[0]][solution[i]];
+				vehicleStrings.push_back(mCities[solution[0]].Name);
 			}
 			else
 			{
