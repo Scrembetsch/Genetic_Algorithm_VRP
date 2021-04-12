@@ -7,6 +7,7 @@
 #include <thread>
 
 #include "Genetic.h"
+#include "GraphDrawer.h"
 #include "Timing.h"
 
 #ifdef _WIN32
@@ -19,6 +20,7 @@ const std::string sInputFile = "Data/Romania.txt";
 //const std::string sInputFile = "Data/US.txt";
 
 int NumThreads = 4;
+bool VisualMode = false;
 
 void LoadArguments(int argc, char** argv)
 {
@@ -35,6 +37,10 @@ void LoadArguments(int argc, char** argv)
                 threadsProvided = true;
             }
         }
+		if (arg == "--visual")
+		{
+			VisualMode = true;
+		}
     }
     if (!threadsProvided)
     {
@@ -52,7 +58,7 @@ int main(int argc, char** argv)
 	// Create default object and read file one time, then copy
 	algos.push_back(GeneticAlgorithm());
 	algos[0].ReadFile(sPrefix + sInputFile, true);
-	
+
 	// Copy object with parsed input
 	for (int i = 1; i < NumThreads; i++)
 	{
@@ -87,6 +93,42 @@ int main(int argc, char** argv)
 	//std::vector<int> solution = { 1,2,GeneticAlgorithm::sBlank, 10, 11,12,14,GeneticAlgorithm::sBlank, 13,15,7,8 };
 	// Print best solution
 	algos[bestIndex].PrintOutput(solution);
+
+	if (VisualMode)
+	{
+#ifdef _WIN64
+		GraphDrawer graph;
+
+		std::vector<std::pair<float, float>> cityLocations;
+		for (const auto& city : algos[bestIndex].mCities)
+		{
+			cityLocations.push_back(std::make_pair(city.X, city.Y));
+		}
+		graph.SetPoints(cityLocations);
+		graph.SetDepot(solution[0]);
+		graph.RescalePoints();
+
+		std::vector<std::vector<int>> routes;
+		int route = 0;
+		routes.push_back(std::vector<int>());
+		routes[0].push_back(solution[0]);
+		for (size_t i = 2; i < solution.size(); i++)
+		{
+			if (solution[i] == GeneticAlgorithm::sBlank)
+			{
+				routes[0].push_back(solution[0]);
+				route++;
+				routes.push_back(std::vector<int>());
+				routes[0].push_back(solution[0]);
+				continue;
+			}
+			routes[route].push_back(solution[i]);
+		}
+		routes[0].push_back(solution[0]);
+		graph.SetRoutes(routes);
+		graph.Draw();
+#endif
+	}
 
 	return 0;
 

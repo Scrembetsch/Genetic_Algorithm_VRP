@@ -35,6 +35,32 @@ bool Road::Parse(const std::string& roadString)
 	return true;
 }
 
+bool City::Parse(const std::string& cityString)
+{
+	// Find important part
+	size_t openingBracket = cityString.find('(');
+	size_t closingBracket = cityString.find(')', openingBracket);
+
+	// Find first letter (non-whitespace) & end of city
+	size_t begin = Util::FindNextNonWhitespace(cityString, openingBracket);
+	size_t comma = cityString.find(',', begin);
+	Name = cityString.substr(begin, comma - begin);
+
+	// Find next first letter & end of city
+	begin = Util::FindNextNonWhitespace(cityString, comma);
+	comma = cityString.find(',', begin);
+	X = std::stof(cityString.substr(begin, comma - begin));
+
+	// Find first digit
+	begin = Util::FindNextNonWhitespace(cityString, comma);
+	Y = std::stof(cityString.substr(begin, closingBracket - begin));
+
+	return true;
+}
+
+const int GeneticAlgorithm::sBlank = -42;
+const int GeneticAlgorithm::sVehicles = 5;
+
 GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
@@ -53,6 +79,7 @@ GeneticAlgorithm::GeneticAlgorithm(const GeneticAlgorithm& ga)
 	, mIterations(ga.mIterations)
 	, mMutationRate(ga.mMutationRate)
 	, mDepot(ga.mDepot)
+	, mCities(ga.mCities)
 	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 
 {
@@ -84,20 +111,20 @@ void GeneticAlgorithm::SolveVRP()
 	std::vector<std::vector<int>> population = InitPopulation();
 
 	std::vector<int> routeLength;
-	for (int i = 0; i < mPopulationSize; i++) 
+	for (int i = 0; i < mPopulationSize; i++)
 	{
 		routeLength.push_back(EvaluateFitness(population[i]));
 	}
 
 	// TODO: Multithreading
-	for (int j = 0; j < mIterations; j++) 
+	for (int j = 0; j < mIterations; j++)
 	{
 
 		population = CreateNewGeneration(population, routeLength);
 		population = Mutate(population);
 
 		std::vector<int> routeLength;
-		for (int i = 0; i < (int)population.size(); i++) 
+		for (int i = 0; i < (int)population.size(); i++)
 		{
 			routeLength.push_back(EvaluateFitness(population[i]));
 		}
@@ -138,11 +165,17 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 		}
 		else if (Util::StartsWith(line, "city"))	// Load city
 		{
-			size_t begin = line.find('(') + 1;
-			size_t end = line.find(',');
-			std::string city = line.substr(begin, end - begin);
-			cityMap.insert(std::pair<std::string, int>(city, cityCounter++));
-			mCities.push_back(city);
+			size_t end = std::string::npos;
+			size_t offset = 0U;
+			while ((end = line.find(").", offset)) != std::string::npos	// Find end of road, offset is used if multiple roads are in one line
+				   && end < commentIndex								// Check if found end is not after comment
+				   )
+			{
+				mCities.push_back(City());
+				mCities[mCities.size() - 1].Parse(line.substr(offset, end));	// Parse city string
+				offset = end + 1;
+				cityMap.insert(std::make_pair(mCities[mCities.size() - 1].Name, cityCounter++));
+			}
 		}
 	}
 	file.close();
@@ -168,6 +201,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 		mDistances[index2][index1] = road.Distance;
 	}
 
+	//PrintCities();
 	//PrintDistances();
 	if (calculateMissingRoutes)
 	{
@@ -235,9 +269,18 @@ void GeneticAlgorithm::PrintDistances()
 	}
 }
 
-std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation() 
+void GeneticAlgorithm::PrintCities()
 {
-	std::vector<std::vector<int>> population(mPopulationSize, std::vector<int>(mNumCities + (sVehicles - 1)));// Cities + blanks 
+	std::cout << "Cities:" << std::endl;
+	for (const auto& city : mCities)
+	{
+		std::cout << city.Name << "\t" << city.X << ", " << city.Y << std::endl;
+	}
+}
+
+std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
+{
+	std::vector<std::vector<int>> population(mPopulationSize, std::vector<int>(mNumCities + (sVehicles - 1)));// Cities + blanks
 	// std::vector<int>(routeVehicle1|blank|routeVehicle2|blank|routeVehicle3|blank|routeVehicle4|blank|routeVehicle5)	-> siehe Discord Paper
 	// Wichtig: gültige initiale Population erzeugen, sodass alle 5 Fahrzeuge ungefähr die gleiche Anzahl an Städten befahren   <--- Anzahl der Städte pro Route ist random weil sie nicht wirklich Einfluss auf die tatsächliche Länge der Strecke hat (Irena)
 
@@ -248,7 +291,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 	{
 		// Add all cities to array
 		std::vector<int> place;
-		for (int k = 0; k < mNumCities; k++) 
+		for (int k = 0; k < mNumCities; k++)
 		{
 			place.push_back(k);
 		}
@@ -260,7 +303,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 
 		// Swap cities and blanks randomly
 		int s = mNumCities + sVehicles - 1;
-		for (int j = 0; j < mNumCities + sVehicles - 1; j++) 
+		for (int j = 0; j < mNumCities + sVehicles - 1; j++)
 		{
 			std::uniform_int_distribution<int> distribution(0, s - 1);
 
@@ -272,7 +315,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 			place.pop_back();
 			s = s - 1;
 		}
-		
+
 		// Check if no base station is set and if routes of first and last vehicle is empty
 		if (population[i].front() == sBlank || population[i][1] == sBlank || population[i][population[i].back() == sBlank])
 		{
@@ -282,8 +325,8 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 		}
 
 		bool hasEmptyRoutes = false;
-		// Check if there are blanks next to each other 
-		for (int j = 1; j < population[i].size(); j++)//start on second index to prevent out of bounds when checking previus element
+		// Check if there are blanks next to each other
+		for (size_t j = 1; j < population[i].size(); j++)//start on second index to prevent out of bounds when checking previus element
 		{
 			// If both previous and current element are blanks
 			if (population[i][j] == sBlank && population[i][j - 1] == sBlank)
@@ -315,7 +358,7 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 	int s = populationRoute.size();
 
 	int routeLength = 0;
-	for (int i = 1; i < s; i++) 
+	for (int i = 1; i < s; i++)
 	{
 		routeLength += mDistances[populationRoute[i - 1]][populationRoute[i]];
 	}
@@ -360,16 +403,16 @@ int* GeneticAlgorithm::createInversionSequence(std::vector<int> individual)
 {
 	int* inversionSequence = new int[individual.size()];
 
-	for (int i = 0; i < individual.size(); i++)
+	for (size_t i = 0; i < individual.size(); i++)
 	{
 		int counter = 0;
 
-		for (int j = 0; j < individual.size(); j++)
+		for (size_t j = 0; j < individual.size(); j++)
 		{
-			if (individual[j] == i + 1)
+			if (individual[j] == int(i + 1))
 				break;
 
-			if (individual[j] > i + 1)
+			if (individual[j] > int(i + 1))
 				counter++;
 		}
 		inversionSequence[i] = counter;
@@ -411,9 +454,9 @@ std::vector<int> GeneticAlgorithm::recreateNumbers(int* inversionSequence, int s
 	return square;
 }
 
-std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vector<int> mother) 
+std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vector<int> mother)
 {
-	//if (father.size() != mother.size()) 
+	//if (father.size() != mother.size())
 	//{
 	//	std::cout << "Fuck! Length is different." << std::endl;
 	//}
@@ -427,12 +470,12 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 	//p2 = distribution(generator);
 
 	//// Generiere zwei zufällige Werte, die nicht gleich sein dürfen und nicht größer als der Vater sein dürfen
-	//while (p1 == p2) 
+	//while (p1 == p2)
 	//{
 	//	p2 = distribution(generator);
 	//}
 
-	//if (p1 > p2) 
+	//if (p1 > p2)
 	//{
 	//	int temp = p1;
 	//	p1 = p2;
@@ -442,11 +485,11 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 	//std::vector<int> child(s);
 
 	//// Alles was wir vom Vater nehmen, nehmen wir nicht von der Mutter (daher löschen wir es)
-	//for (int i = p1; i <= p2; i++) 
+	//for (int i = p1; i <= p2; i++)
 	//{
-	//	for (int j = 0; j < (int)mother.size(); j++) 
+	//	for (int j = 0; j < (int)mother.size(); j++)
 	//	{
-	//		if (mother[j] == father[i]) 
+	//		if (mother[j] == father[i])
 	//		{
 	//			mother.erase(mother.begin() + j);
 	//			break;
@@ -456,16 +499,16 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 
 	//// Kind mit Mutter und Vater befüllen
 	//std::vector<int>::const_iterator mIter = mother.cbegin();
-	//for (int i = 0; i < s; i++) 
+	//for (int i = 0; i < s; i++)
 	//{
-	//	if (i >= p1 && i <= p2) 
+	//	if (i >= p1 && i <= p2)
 	//	{
 	//		child[i] = father[i];
 	//	}
-	//	else 
+	//	else
 	//	{
 	//		child[i] = *mIter;
-	//		if (mIter != mother.cend()) 
+	//		if (mIter != mother.cend())
 	//		{
 	//			mIter++;
 	//		}
@@ -478,7 +521,7 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 
 	//return child;	// Kind ist geboren
 
-	
+
 
 	int s = father.size();
 
@@ -555,7 +598,7 @@ void GeneticAlgorithm::sort(std::vector<std::vector<int>>& population, std::vect
 			j--;
 		}
 
-		if (i <= j) 
+		if (i <= j)
 		{
 			bufferFitness = fitness[i];
 			fitness[i] = fitness[j];
@@ -573,7 +616,7 @@ void GeneticAlgorithm::sort(std::vector<std::vector<int>>& population, std::vect
 		sort(population, fitness, i, r);
 }
 
-std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<std::vector<int>> population, std::vector<int> fitness) 
+std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<std::vector<int>> population, std::vector<int> fitness)
 {
 	//// TODO: Sortiere Population nach Fitness Value und wähle zufällig Vater + Mutter aus der besseren Hälfte
 
@@ -585,7 +628,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<
 
 	//std::vector<std::vector<int>> childGen;
 	//std::uniform_real_distribution<double> distribution(0, 1);
-	//for (int i = 0; i < routeNb; i++) 
+	//for (int i = 0; i < routeNb; i++)
 	//{
 	//	double randNb;
 	//	randNb = distribution(generator);	// Zufallszahl zwischen 0 und 1
@@ -594,7 +637,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<
 	//	int parFather = 0;
 	//	for (int j = 1; j < (int)range.size(); j++)
 	//	{
-	//		if (randNb <= range[0]) 
+	//		if (randNb <= range[0])
 	//		{
 	//			parFather = 0;
 	//			break;
@@ -612,7 +655,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<
 	//	int parMother = 0;
 	//	for (int j = 1; j < (int)range.size(); j++)
 	//	{
-	//		if (randNb <= range[0]) 
+	//		if (randNb <= range[0])
 	//		{
 	//			parMother = 0;
 	//			break;
@@ -630,7 +673,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<
 	//		randNb = distribution(generator);
 	//		for (int j = 1; j < (int)range.size(); j++)
 	//		{
-	//			if (randNb <= range[0]) 
+	//			if (randNb <= range[0])
 	//			{
 	//				parMother = 0;
 	//				break;
@@ -653,7 +696,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<
 	std::vector<std::vector<int>> new_population;
 	for (unsigned int i = 0; i < population.size() / 2; i++)
 	{
-		
+
 		int randomNum1 = distribution(generator);
 		int randomNum2 = distribution(generator);
 		if (randomNum1 == randomNum2)
@@ -673,10 +716,10 @@ std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<
 	population = new_population;
 	new_population.clear();
 
-	return new_population;
+	return population;
 }
 
-std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<int>> population) 
+std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<int>> population)
 {
 	// Mutation-Function
 	std::default_random_engine generator(std::random_device{}());
@@ -684,22 +727,22 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 	// Maximum Array Size = numCities + 4 blanks (to seperate the 5 vehicles)
 	std::uniform_int_distribution<int> disInt(0, mNumCities + sVehicles - 2);
 
-	for (int i = 0; i < (int)population.size(); i++) 
+	for (int i = 0; i < (int)population.size(); i++)
 	{
 		double r = dis(generator);
-		if (r <= mMutationRate) 
+		if (r <= mMutationRate)
 		{
 			int first, second;
 			first = disInt(generator);
 			second = disInt(generator);
 
-			// Don't swap the depot with a blank 
+			// Don't swap the depot with a blank
 			while (first == 0 && population[i][second] == sBlank)
 			{
 				second = disInt(generator);
 			}
 
-			// Don't swap the depot with a blank 
+			// Don't swap the depot with a blank
 			while (second == 0 && population[i][first] == sBlank)
 			{
 				first = disInt(generator);
@@ -714,15 +757,15 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 	return population;
 }
 
-std::vector<int> GeneticAlgorithm::SaveBest(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness) 
+std::vector<int> GeneticAlgorithm::SaveBest(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness)
 {
 	// Bestes Ding abspeichern
 	std::vector<int>::const_iterator fitIter = fitness.cbegin();
 	int minFit = *fitIter;
 	int index = 0;
-	for (; fitIter != fitness.cend(); fitIter++) 
+	for (; fitIter != fitness.cend(); fitIter++)
 	{
-		if (*fitIter < minFit) 
+		if (*fitIter < minFit)
 		{
 			minFit = *fitIter;
 			index = fitIter - fitness.cbegin();
@@ -773,7 +816,7 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 			completeDistance += vehicleDistance;
 			std::string frontInfo = "Vehicle " + std::to_string(vehicleStrings.size()) + "(" + std::to_string(vehicleDistance) + "): ";
 			vehicleStrings[vehicleStrings.size() - 1].insert(0, frontInfo);
-			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[mDepot];
+			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[mDepot].Name;
 			vehicleDistance = 0;
 		}
 		else
@@ -782,7 +825,7 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 			{
 				// Increase travelled distance and add starting city
 				vehicleDistance += mDistances[mDepot][solution[i]];
-				vehicleStrings.push_back(mCities[mDepot]);
+				vehicleStrings.push_back(mCities[mDepot].Name);
 			}
 			else
 			{
@@ -790,7 +833,7 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 				vehicleDistance += mDistances[solution[i - 1]][solution[i]];
 			}
 			// Add visited city
-			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[solution[i]];
+			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[solution[i]].Name;
 		}
 	}
 

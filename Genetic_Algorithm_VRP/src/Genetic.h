@@ -10,11 +10,21 @@ struct Road
 	bool Parse(const std::string& roadString);
 };
 
+struct City
+{
+	std::string Name;
+	float X;
+	float Y;
+
+	bool Parse(const std::string& cityString);
+};
+
 class GeneticAlgorithm
 {
 public:
-	static const int sBlank = -42;
-	static const int sVehicles = 5;
+	// Init needs to be done in cpp to compile on Linux
+	static const int sBlank;
+	static const int sVehicles;
 
 	GeneticAlgorithm();
 	GeneticAlgorithm(const GeneticAlgorithm& ga);
@@ -37,15 +47,16 @@ public:
 	int**	mDistances;				// All distances between cities
 	int		mNumCities;				// Number of cities
 	int		mPopulationSize;		// Initial population size
-	int		mIterations;			// Number of iterations 	
+	int		mIterations;			// Number of iterations
 	double	mMutationRate;			// Probability of mutation
 	int		mDepot;					// City where it all starts
 
-	std::vector<std::string>		mCities;
+	std::vector<City>				mCities;
 	std::vector<std::vector<int>>	mBestSolutions;
 
 private:
 	void PrintDistances();
+	void PrintCities();
 };
 
 // TODO: Delete old functions
