@@ -94,6 +94,22 @@ int main(int argc, char** argv)
 	// Print best solution
 	algos[bestIndex].PrintOutput(solution);
 
+	// Dummy solution
+	//std::vector<int> solution;
+	//for (int i = 0; i < algos[0].mNumCities; i++)
+	//{
+	//	solution.push_back(i);
+	//}
+	//std::random_device rd;
+	//std::mt19937 g(rd());
+	//std::shuffle(solution.begin(), solution.end(), g);
+	//int bestIndex = 0;
+	//solution.insert(solution.begin() + 1, GeneticAlgorithm::sBlank);
+	//solution.insert(solution.begin() + 5, GeneticAlgorithm::sBlank);
+	//solution.insert(solution.begin() + 10, GeneticAlgorithm::sBlank);
+	//solution.insert(solution.begin() + 14, GeneticAlgorithm::sBlank);
+	//solution.insert(solution.begin() + 18, GeneticAlgorithm::sBlank);
+
 	if (VisualMode)
 	{
 #ifdef _WIN64
@@ -116,15 +132,15 @@ int main(int argc, char** argv)
 		{
 			if (solution[i] == GeneticAlgorithm::sBlank)
 			{
-				routes[0].push_back(solution[0]);
+				routes[route].push_back(solution[0]);
 				route++;
 				routes.push_back(std::vector<int>());
-				routes[0].push_back(solution[0]);
+				routes[route].push_back(solution[0]);
 				continue;
 			}
 			routes[route].push_back(solution[i]);
 		}
-		routes[0].push_back(solution[0]);
+		routes[route].push_back(solution[0]);
 		graph.SetRoutes(routes);
 		graph.Draw();
 #endif

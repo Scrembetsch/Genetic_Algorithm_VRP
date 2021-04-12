@@ -68,6 +68,9 @@ void GraphDrawer::SetRoutes(const std::vector<std::vector<int>>& routes)
 void GraphDrawer::SetDepot(size_t index)
 {
 	mCircles[index].setFillColor(sf::Color::Yellow);
+	float radius = sRadius * 3;
+	mCircles[index].setRadius(radius);
+	mCircles[index].setPosition(mPoints[index].first - radius, mPoints[index].second - radius);
 }
 
 const sf::Color& GraphDrawer::GetLineColor(size_t index)

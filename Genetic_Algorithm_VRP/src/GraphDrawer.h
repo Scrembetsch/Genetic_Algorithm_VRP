@@ -7,7 +7,7 @@
 
 class GraphDrawer
 {
-	const float sRadius = 3.0f;
+	const float sRadius = 5.0f;
 	const std::vector<sf::Color> sColors = {sf::Color::Cyan, sf::Color::Blue, sf::Color::Green, sf::Color::Magenta, sf::Color::Red, sf::Color::Yellow};
 	int mWindowHeight = 1080;
 	int mWindowWidth = 1920;
