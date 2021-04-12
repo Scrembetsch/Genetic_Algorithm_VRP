@@ -658,7 +658,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 	for (int i = 0; i < (int)population.size(); i++) 
 	{
 		double r = dis(generator);
-		if (r >= mMutationRate) 
+		if (r <= mMutationRate) 
 		{
 			int first, second;
 			first = disInt(generator);
