@@ -76,21 +76,3 @@ public:
 		return value == "true" || value == "1";
 	}
 };
-
-static int GetPosition(int argc, char** argv, const std::string& shortArgument, const std::string& longArgument = "")
-{
-	for (int i = 0; i < argc; i++)
-	{
-		std::string current(argv[i]);
-		if (current == shortArgument || (current != "" && current == longArgument))
-		{
-			return i;
-		}
-	}
-	return -1;
-}
-
-static bool CheckIfExists(int argc, char** argv, const std::string& shortArgument, const std::string& longArgument = "")
-{
-	return GetPosition(argc, argv, shortArgument, longArgument) != -1;
-}
