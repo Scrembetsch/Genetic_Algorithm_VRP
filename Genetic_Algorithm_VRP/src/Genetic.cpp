@@ -315,7 +315,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 		}
 
 		// Check if no base station is set and if routes of first and last vehicle is empty
-		if (population[i].front() == sBlank || population[i][1] == sBlank || population[i][population[i].back() == sBlank])
+		if (population[i].front() == sBlank || population[i][1] == sBlank || population[i].back() == sBlank)
 		{
 			// Reset loop and generate a new version for this individual
 			--i;
@@ -348,21 +348,57 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 
 int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) const
 {
-	// Mittelwert der zurückgelegten Distanz der Trucks berechnen = Summe der einzelnen Truck-Distanzen/5
-	// Fitness ist Gewichtung1 (z.B. 0.5) * Summe der einzelnen Truck-Distanzen)/5 + Gewichtung2 (z.B. 0.5) * Gesamtstrecke aller Trucks
-	// Fitness Wert soll möglichst klein sein
-	// TODO: Wenn sBlank ausgelesen wird -> durch INT_MAX ersetzen
-	//TODO: Split in 4 different routes
+	float weight1 = 0.5;
+	float weight2 = 0.5;
+
+	std::vector<int> routeDistances;
+
 	int s = populationRoute.size();
-
 	int routeLength = 0;
-	for (int i = 1; i < s; i++)
-	{
-		routeLength += mDistances[populationRoute[i - 1]][populationRoute[i]];
-	}
-	routeLength += mDistances[populationRoute[s - 1]][populationRoute[0]];
+	int routePartLength = 0;
+	int currentDistance = 0;
+	int averageTruckDistance = 0;
 
-	return routeLength;
+	int distanceDifference = 0;
+	int averageDistanceDifference = 0;
+	int addCorrected = 0;
+
+	for (int i = 1; i < (s - 1); i++)
+	{
+		if (populationRoute[i] != sBlank)
+		{
+			currentDistance = mDistances[populationRoute[i]][populationRoute[i - 1]];
+			routeLength += currentDistance;
+			routePartLength += currentDistance;
+		}
+		else
+		{
+			if (populationRoute[i - 1] != sBlank && populationRoute[i + 1] != sBlank)
+			{
+				currentDistance = mDistances[populationRoute[i - 1]][populationRoute[0]];
+				routeLength += currentDistance;
+				routePartLength += currentDistance;
+
+				routeDistances.push_back(routePartLength);
+
+				currentDistance = mDistances[populationRoute[0]][populationRoute[i + 1]];
+				routeLength += currentDistance;
+				routePartLength = currentDistance;
+			}
+		}
+	}
+	routeDistances.push_back(routePartLength);
+	averageTruckDistance = routeLength / 5;
+
+	for (int distance : routeDistances)
+	{
+		distanceDifference += std::abs(averageTruckDistance - distance);
+	}
+
+	averageDistanceDifference = distanceDifference / 5;
+	addCorrected = averageDistanceDifference * 10;
+
+	return (weight1 * routeLength) + (weight2 * addCorrected);
 }
 
 //std::vector<double> choseRange(std::vector<int> fitness, int ep) {
