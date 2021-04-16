@@ -842,7 +842,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 	std::default_random_engine generator(std::random_device{}());
 	std::uniform_real_distribution<double> dis(0, 1);
 	// Maximum Array Size = numCities + 4 blanks (to seperate the 5 vehicles)
-	std::uniform_int_distribution<int> disInt(0, mNumCities + sVehicles - 2);
+	std::uniform_int_distribution<int> disInt(0, mNumCities + sVehicles - 2); 
 	int size = int(population.size());
 	for (int i = 0; i < size; i++)
 	{
@@ -853,14 +853,14 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 			first = disInt(generator);
 			second = disInt(generator);
 
-			// Don't swap the depot with a blank
-			while ((first == 0 || first == (size - 1)) && population[i][second] == sBlank)
+			// Don't swap the depot, the first or the last city with a blank
+			while ((first == 0 || first == 1 || first == (size - 1)) && population[i][second] == sBlank)
 			{
 				second = disInt(generator);
 			}
 
-			// Don't swap the depot with a blank
-			while ((second == 0 || second == (size - 1)) && population[i][first] == sBlank)
+			// Don't swap the depot, the first or the last city  with a blank
+			while ((second == 0 || second == 1 || second == (size - 1)) && population[i][first] == sBlank)
 			{
 				first = disInt(generator);
 			}
