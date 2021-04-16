@@ -65,7 +65,7 @@ GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
 	, mPopulationSize(300)
-	, mIterations(200)
+	, mIterations(1)
 	, mMutationRate(0.1)
 	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 {
@@ -348,6 +348,10 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 
 int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) const
 {
+	if (populationRoute[0] == sBlank)
+	{
+		return INT32_MAX;
+	}
 	float weight1 = 0.5;
 	float weight2 = 0.5;
 
@@ -760,8 +764,8 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 	std::uniform_real_distribution<double> dis(0, 1);
 	// Maximum Array Size = numCities + 4 blanks (to seperate the 5 vehicles)
 	std::uniform_int_distribution<int> disInt(0, mNumCities + sVehicles - 2);
-
-	for (int i = 0; i < (int)population.size(); i++)
+	int size = int(population.size());
+	for (int i = 0; i < size; i++)
 	{
 		double r = dis(generator);
 		if (r <= mMutationRate)
@@ -771,13 +775,13 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 			second = disInt(generator);
 
 			// Don't swap the depot with a blank
-			while (first == 0 && population[i][second] == sBlank)
+			while ((first == 0 || first == (size - 1)) && population[i][second] == sBlank)
 			{
 				second = disInt(generator);
 			}
 
 			// Don't swap the depot with a blank
-			while (second == 0 && population[i][first] == sBlank)
+			while ((second == 0 || second == (size - 1)) && population[i][first] == sBlank)
 			{
 				first = disInt(generator);
 			}
