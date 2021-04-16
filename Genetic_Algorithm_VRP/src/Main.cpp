@@ -30,7 +30,7 @@ void LoadArguments(int argc, char** argv)
 	NumThreads = parser.GetInt("-t", "--threads", std::thread::hardware_concurrency());
 	VisualMode = parser.CheckIfExists("-v", "--visual");
 
-	std::cout << "Using Threads: " << NumThreads << std::endl;
+	std::cout << "Using Threads: " << NumThreads << std::endl << std::endl;
 }
 
 int main(int argc, char** argv)
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 	for (int i = 0; i < NumThreads; i++)
 	{
 		// Start needed threads
-		std::cout << "Started Thread " << std::to_string(i) << std::endl;
+		//std::cout << "Started Thread " << std::to_string(i) << std::endl;
 		algos[i].SolveVRP();
 	}
 
@@ -112,7 +112,7 @@ int main(int argc, char** argv)
 		int route = 0;
 		routes.push_back(std::vector<int>());
 		routes[0].push_back(solution[0]);
-		for (size_t i = 2; i < solution.size(); i++)
+		for (size_t i = 1; i < solution.size(); i++)
 		{
 			if (solution[i] == GeneticAlgorithm::sBlank)
 			{
@@ -120,9 +120,11 @@ int main(int argc, char** argv)
 				route++;
 				routes.push_back(std::vector<int>());
 				routes[route].push_back(solution[0]);
-				continue;
 			}
-			routes[route].push_back(solution[i]);
+			else
+			{
+				routes[route].push_back(solution[i]);
+			}
 		}
 		routes[route].push_back(solution[0]);
 		graph.SetRoutes(routes);

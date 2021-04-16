@@ -54,8 +54,9 @@ public:
 	std::vector<std::vector<int>>	mBestSolutions;
 
 private:
-	void PrintDistances();
-	void PrintCities();
+	void PrintDistances() const;
+	void PrintCities() const;
+	bool ValidateRoute(const std::vector<int>& route, bool assertOnError) const;
 };
 
 // TODO: Delete old functions

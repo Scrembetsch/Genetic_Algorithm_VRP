@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <map>
+#include <stdlib.h>
 
 #include "Genetic.h"
 #include "PathFinder.h"
@@ -247,7 +249,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 	return true;
 }
 
-void GeneticAlgorithm::PrintDistances()
+void GeneticAlgorithm::PrintDistances() const
 {
 	std::cout << "Distances:" << std::endl;
 	std::cout << "  \t";
@@ -267,13 +269,85 @@ void GeneticAlgorithm::PrintDistances()
 	}
 }
 
-void GeneticAlgorithm::PrintCities()
+void GeneticAlgorithm::PrintCities() const
 {
 	std::cout << "Cities:" << std::endl;
 	for (const auto& city : mCities)
 	{
 		std::cout << city.Name << "\t" << city.X << ", " << city.Y << std::endl;
 	}
+}
+
+bool GeneticAlgorithm::ValidateRoute(const std::vector<int>& route, bool assertOnError) const
+{
+	if (route[0] == sBlank)
+	{
+		std::cout << "ERROR: Depot is Blank!" << std::endl;
+		assert(!assertOnError);
+		return false;
+	}
+
+	if (route[1] == sBlank)
+	{
+		std::cout << "ERROR: First Route is empty!" << std::endl;
+		assert(!assertOnError);
+		return false;
+	}
+
+	if (route[route.size() - 1] == sBlank)
+	{
+		std::cout << "ERROR: Last Route is empty!" << std::endl;
+		assert(!assertOnError);
+		return false;
+	}
+
+	for (size_t i = 1; i < route.size(); i++)
+	{
+		if (route[i - 1] == route[i])
+		{
+			std::cout << "ERROR: Same id found two consecutive times! Id: " << std::to_string(route[i]) << std::endl;
+			assert(!assertOnError);
+			return false;
+		}
+	}
+
+	std::vector<int> doubleEntries(mNumCities, 0);
+	int numBlanks = 0;
+	for (size_t i = 0; i < route.size(); i++)
+	{
+		if (route[i] != sBlank)
+		{
+			doubleEntries[route[i]]++;
+		}
+		else
+		{
+			numBlanks++;
+		}
+	}
+	for (size_t i = 0; i < mNumCities; i++)
+	{
+		if (doubleEntries[i] > 1)
+		{
+			std::cout << "ERROR: Same id found two times! Id: " << std::to_string(i) << std::endl;
+			assert(!assertOnError);
+			return false;
+		}
+		if (doubleEntries[i] == 0)
+		{
+			std::cout << "ERROR: Id not found! Id: " << std::to_string(i) << ", City: "<< mCities[i].Name << std::endl;
+			assert(!assertOnError);
+			return false;
+		}
+	}
+
+	if (numBlanks != sVehicles - 1)
+	{
+		std::cout << "ERROR: Number of blanks does not match! Expected: " << std::to_string(sVehicles - 1) << ", Actual: " << std::to_string(numBlanks) << std::endl;
+
+		assert(!assertOnError);
+		return false;
+	}
+	return true;
 }
 
 std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
@@ -397,14 +471,14 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 		}
 	}
 	routeDistances.push_back(routePartLength);
-	averageTruckDistance = routeLength / 5;
+	averageTruckDistance = routeLength / sVehicles;
 
 	for (int distance : routeDistances)
 	{
 		distanceDifference += std::abs(averageTruckDistance - distance);
 	}
 
-	averageDistanceDifference = distanceDifference / 5;
+	averageDistanceDifference = distanceDifference / sVehicles;
 	addCorrected = averageDistanceDifference * 10;
 
 	return (weight1 * routeLength) + (weight2 * addCorrected);
@@ -846,37 +920,52 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 	//// Vehicle 3 (Gesamtdistanz): etc.
 	//// etc.
 
+	ValidateRoute(solution, false);
+
 	std::string output = "Gesamtdistanz aller Fahrzeuge: ";
-	std::vector<std::string> vehicleStrings;
+	std::vector<std::string> vehicleStrings(sVehicles);
 	int completeDistance = 0;
 	int vehicleDistance = 0;
-	for (size_t i = 0; i <= solution.size(); i++)
+	int vehicleCounter = 0;
+
+	for (size_t i = 1; i <= solution.size(); i++)
 	{
 		if (i == solution.size() || solution[i] == sBlank)
 		{
-			// Build Output String (add vehicle details whenever a blank is discovered or the end is reached)
-			vehicleDistance += mDistances[solution[i - 1]][solution[0]];
-			completeDistance += vehicleDistance;
-			std::string frontInfo = "Vehicle " + std::to_string(vehicleStrings.size()) + "(" + std::to_string(vehicleDistance) + "): ";
-			vehicleStrings[vehicleStrings.size() - 1].insert(0, frontInfo);
-			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[solution[0]].Name;
-			vehicleDistance = 0;
+			if (vehicleDistance == 0)
+			{
+				if (vehicleCounter == sVehicles)
+				{
+					break;
+				}
+				vehicleStrings[vehicleCounter] = "Vehicle " + std::to_string(vehicleCounter + 1) + "(" + std::to_string(0) + ") ";
+			}
+			else
+			{
+				// Build Output String (add vehicle details whenever a blank is discovered or the end is reached)
+				vehicleDistance += mDistances[solution[i - 1]][solution[0]];
+				completeDistance += vehicleDistance;
+				std::string frontInfo = "Vehicle " + std::to_string(vehicleCounter + 1) + "(" + std::to_string(vehicleDistance) + "): ";
+				vehicleStrings[vehicleCounter].insert(0, frontInfo);
+				vehicleStrings[vehicleCounter] += " -> " + mCities[solution[0]].Name;
+				vehicleDistance = 0;
+			}
+			vehicleCounter++;
 		}
 		else
 		{
 			if (vehicleDistance == 0)
 			{
-				// Increase travelled distance and add starting city
+				// Increase traveled distance and add starting city
 				vehicleDistance += mDistances[solution[0]][solution[i]];
-				vehicleStrings.push_back(mCities[solution[0]].Name);
+				vehicleStrings[vehicleCounter] = (mCities[solution[0]].Name);
 			}
 			else
 			{
-				// Increase travelled distance
+				// Increase traveled distance
 				vehicleDistance += mDistances[solution[i - 1]][solution[i]];
 			}
-			// Add visited city
-			vehicleStrings[vehicleStrings.size() - 1] += " -> " + mCities[solution[i]].Name;
+			vehicleStrings[vehicleCounter] += " -> " + mCities[solution[i]].Name;
 		}
 	}
 
