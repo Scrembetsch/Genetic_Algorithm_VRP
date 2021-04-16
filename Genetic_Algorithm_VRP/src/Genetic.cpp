@@ -65,7 +65,7 @@ GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
 	, mPopulationSize(300)
-	, mIterations(1)
+	, mIterations(10)
 	, mMutationRate(0.1)
 	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 {
@@ -348,7 +348,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 
 int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) const
 {
-	if (populationRoute[0] == sBlank)
+	if (populationRoute[0] == sBlank || populationRoute[1] == sBlank)
 	{
 		return INT32_MAX;
 	}
@@ -377,6 +377,11 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 		}
 		else
 		{
+			if (populationRoute[i + 1] == sBlank)
+			{
+				return INT32_MAX;
+			}
+
 			if (populationRoute[i - 1] != sBlank && populationRoute[i + 1] != sBlank)
 			{
 				currentDistance = mDistances[populationRoute[i - 1]][populationRoute[0]];
