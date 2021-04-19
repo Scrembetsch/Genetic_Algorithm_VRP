@@ -659,7 +659,7 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 		i++;
 	}
 
-	ValidateRoute(child, true);
+	//ValidateRoute(child, true);
 
 	return child;
 }
