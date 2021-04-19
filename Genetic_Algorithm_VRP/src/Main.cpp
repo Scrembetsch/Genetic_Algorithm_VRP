@@ -17,8 +17,8 @@ const std::string sPrefix = "../";
 const std::string sPrefix;
 #endif // _WIN32
 
-const std::string sInputFile = "Data/Romania.txt";
-//const std::string sInputFile = "Data/US.txt";
+//const std::string sInputFile = "Data/Romania.txt";
+const std::string sInputFile = "Data/US.txt";
 
 int NumThreads = 4;
 bool VisualMode = false;

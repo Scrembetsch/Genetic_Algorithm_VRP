@@ -445,13 +445,11 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 	{
 		if (populationRoute[i] != sBlank)
 		{
-			if (populationRoute[i - 1] == sBlank)
-			{
-				currentDistance = mDistances[populationRoute[i]][populationRoute[0]];
-			}
-			else
+			if (populationRoute[i - 1] != sBlank)
 			{
 				currentDistance = mDistances[populationRoute[i]][populationRoute[i - 1]];
+				routeLength += currentDistance;
+				routePartLength += currentDistance;
 			}
 			routeLength += currentDistance;
 			routePartLength += currentDistance;
