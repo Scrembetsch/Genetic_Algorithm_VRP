@@ -67,9 +67,9 @@ GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
 	, mPopulationSize(300)
-	, mIterations(1000)
-	, mMutationRate(0.1)
-	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
+	, mIterations(10)
+	, mMutationRate(0.4)
+	, mBestSolutions(mIterations, std::vector<int>())
 {
 }
 
@@ -80,7 +80,7 @@ GeneticAlgorithm::GeneticAlgorithm(const GeneticAlgorithm& ga)
 	, mIterations(ga.mIterations)
 	, mMutationRate(ga.mMutationRate)
 	, mCities(ga.mCities)
-	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
+	, mBestSolutions(mIterations, std::vector<int>())
 
 {
 	mDistances = new int* [mNumCities];
@@ -324,7 +324,7 @@ bool GeneticAlgorithm::ValidateRoute(const std::vector<int>& route, bool assertO
 			numBlanks++;
 		}
 	}
-	for (size_t i = 0; i < mNumCities; i++)
+	for (int i = 0; i < mNumCities; i++)
 	{
 		if (doubleEntries[i] > 1)
 		{
@@ -445,7 +445,14 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 	{
 		if (populationRoute[i] != sBlank)
 		{
-			currentDistance = mDistances[populationRoute[i]][populationRoute[i - 1]];
+			if (populationRoute[i - 1] == sBlank)
+			{
+				currentDistance = mDistances[populationRoute[i]][populationRoute[0]];
+			}
+			else
+			{
+				currentDistance = mDistances[populationRoute[i]][populationRoute[i - 1]];
+			}
 			routeLength += currentDistance;
 			routePartLength += currentDistance;
 		}
@@ -627,7 +634,7 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 
 	int reshuffleBlanks = 0;
 
-	for (int i = 0; i < child.size(); i++)
+	for (size_t i = 0; i < child.size(); i++)
 	{
 		child[i]--;
 		if (child[i] >= mNumCities)
@@ -648,7 +655,7 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 		reshuffleBlanks++;
 	}
 
-	int i = 2;
+	size_t i = 2;
 	while (reshuffleBlanks > 0)
 	{
 		if (i != (child.size() - 1) && child[i] != sBlank && child[i - 1] != sBlank)
@@ -741,7 +748,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 	std::default_random_engine generator(std::random_device{}());
 	std::uniform_real_distribution<double> dis(0, 1);
 	// Maximum Array Size = numCities + 4 blanks (to seperate the 5 vehicles)
-	std::uniform_int_distribution<int> disInt(0, mNumCities + sVehicles - 2); 
+	std::uniform_int_distribution<int> disInt(0, mNumCities + sVehicles - 2);
 	int size = int(population.size());
 	for (int i = 0; i < size; i++)
 	{
