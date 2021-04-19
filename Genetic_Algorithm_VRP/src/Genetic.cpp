@@ -63,12 +63,13 @@ bool City::Parse(const std::string& cityString)
 const int GeneticAlgorithm::sBlank = -42;
 const int GeneticAlgorithm::sVehicles = 5;
 
+// Initialize Genetic Algorithm
 GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
-	, mPopulationSize(300)
-	, mIterations(10)
-	, mMutationRate(0.4)
+	, mPopulationSize(500)
+	, mIterations(100000)
+	, mMutationRate(0.2)
 	, mBestSolutions(mIterations, std::vector<int>())
 {
 }
@@ -116,7 +117,6 @@ void GeneticAlgorithm::SolveVRP()
 		routeLength.push_back(EvaluateFitness(population[i]));
 	}
 
-	// TODO: Multithreading
 	for (int j = 0; j < mIterations; j++)
 	{
 
@@ -251,6 +251,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 
 void GeneticAlgorithm::PrintDistances() const
 {
+	// Print distances
 	std::cout << "Distances:" << std::endl;
 	std::cout << "  \t";
 	for (int i = 0; i < mNumCities; i++)
@@ -271,6 +272,7 @@ void GeneticAlgorithm::PrintDistances() const
 
 void GeneticAlgorithm::PrintCities() const
 {
+	// Print Cities
 	std::cout << "Cities:" << std::endl;
 	for (const auto& city : mCities)
 	{
@@ -488,38 +490,6 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 
 	return (weight1 * routeLength) + (weight2 * addCorrected);
 }
-
-//std::vector<double> choseRange(std::vector<int> fitness, int ep) {
-//
-//	// ???
-//	// TODO: dont use this
-//
-//	std::vector<int>::const_iterator fitIter = fitness.cbegin();
-//	int minFit = *fitIter;
-//	for (; fitIter != fitness.cend(); fitIter++) {
-//		if (*fitIter < minFit) {
-//			minFit = *fitIter;
-//		}
-//	}
-//
-//	//cout << "Minimun distance: " << minFit << endl;
-//
-//	std::vector<double> trueFitness;
-//	double total = 0;
-//	for (fitIter = fitness.cbegin(); fitIter != fitness.cend(); fitIter++) {
-//		double ratio = double(*fitIter) / double(minFit);
-//		double exponent = -pow(ratio, ep);
-//		total += exp(exponent);	// das ergebnis von exp() ist zwischen 0 und 1
-//		trueFitness.push_back(total);
-//	}
-//
-//	std::vector<double> range(fitness.size());
-//	for (int i = 0; i < (int)fitness.size(); i++) {
-//		range[i] = trueFitness[i] / total;
-//	}
-//
-//	return range;	// range[i] ist zwischen 0 und 1 und umso höher die Distanz zum minimalen Fitness Wert war, desto höher ist range[i]
-//}
 
 int* GeneticAlgorithm::createInversionSequence(std::vector<int> individual)
 {
@@ -780,7 +750,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 
 std::vector<int> GeneticAlgorithm::SaveBest(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness)
 {
-	// Bestes Ding abspeichern
+	// Save the best solution of the current population
 	std::vector<int>::const_iterator fitIter = fitness.cbegin();
 	int minFit = *fitIter;
 	int index = 0;
@@ -801,7 +771,7 @@ const std::vector<int>& GeneticAlgorithm::GetBest() const
 	auto currentBestIt = mBestSolutions.begin();
 	int currentBest = INT32_MAX;
 
-	// Find the best (= smallest) Fitness Value
+	// Find the best (= smallest) Fitness Value across all previously saved solutions
 	for (auto it = mBestSolutions.begin(); it != mBestSolutions.end(); it++)
 	{
 		int fitness = EvaluateFitness(*it);
@@ -817,12 +787,12 @@ const std::vector<int>& GeneticAlgorithm::GetBest() const
 
 void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 {
-	//// Output
-	//// Gesamtdistanz aller Fahrzeuge: Distanz
-	//// Vehicle 1 (Gesamtdistanz): StadtA -> StadtB -> StadtC -> etc. ... -> StadtA
-	//// Vehicle 2 (Gesamtdistanz): StadtA -> StadtX -> StadtY -> etc. ... -> StadtA
-	//// Vehicle 3 (Gesamtdistanz): etc.
-	//// etc.
+	// Output
+	// Total distance of all vehicles: (Total distance of all 5 vehicles)
+	// Vehicle 1 (Total distance of vehicle 1): Depot -> CityA -> CityB -> etc. ... -> Depot
+	// Vehicle 2 (Total distance of vehicle 2): Depot-> StadtX -> StadtY -> etc. ... -> Depot
+	// Vehicle 3 (Total distance of vehicle 3): etc.
+	// etc.
 
 	ValidateRoute(solution, false);
 
