@@ -130,6 +130,8 @@ int main(int argc, char** argv)
 		routes[route].push_back(solution[0]);
 		graph.SetRoutes(routes);
 		graph.Draw();
+#else
+		std::cout << "Visual mode not supported on this platform!" << std::endl;
 #endif
 	}
 

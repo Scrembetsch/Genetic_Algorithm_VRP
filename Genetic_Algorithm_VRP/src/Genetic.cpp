@@ -830,6 +830,7 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 
 	std::string output = "Gesamtdistanz aller Fahrzeuge: ";
 	std::vector<std::string> vehicleStrings(sVehicles);
+	std::vector<int> vehicleDistances(sVehicles);
 	int completeDistance = 0;
 	int vehicleDistance = 0;
 	int vehicleCounter = 0;
@@ -845,6 +846,7 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 					break;
 				}
 				vehicleStrings[vehicleCounter] = "Vehicle " + std::to_string(vehicleCounter + 1) + "(" + std::to_string(0) + ") ";
+				vehicleDistances[vehicleCounter] = 0;
 			}
 			else
 			{
@@ -852,6 +854,7 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 				vehicleDistance += mDistances[solution[i - 1]][solution[0]];
 				completeDistance += vehicleDistance;
 				std::string frontInfo = "Vehicle " + std::to_string(vehicleCounter + 1) + "(" + std::to_string(vehicleDistance) + "): ";
+				vehicleDistances[vehicleCounter] = vehicleDistance;
 				vehicleStrings[vehicleCounter].insert(0, frontInfo);
 				vehicleStrings[vehicleCounter] += " -> " + mCities[solution[0]].Name;
 				vehicleDistance = 0;
@@ -874,10 +877,14 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 			vehicleStrings[vehicleCounter] += " -> " + mCities[solution[i]].Name;
 		}
 	}
-
-	output += std::to_string(completeDistance) + "\n";
+	int averageDistance = completeDistance / sVehicles;
+	output += std::to_string(completeDistance) + "|" + std::to_string(averageDistance) + "\n";
 
 	// Print Output-String to Console
+	for (int i = 0; i < sVehicles; i++)
+	{
+		vehicleStrings[i].insert(vehicleStrings[i].find(')'), "|" + std::to_string(std::abs(averageDistance - vehicleDistances[i])));
+	}
 	for (const auto& vehicle : vehicleStrings)
 	{
 		output += vehicle + "\n";
