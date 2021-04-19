@@ -37,16 +37,16 @@ int main(int argc, char** argv)
 {
 	LoadArguments(argc, argv);
 
-	std::vector<GeneticAlgorithm> algos;
+	std::vector<GeneticAlgorithm*> algos;
 
 	// Create default object and read file one time, then copy
-	algos.push_back(GeneticAlgorithm());
-	algos[0].ReadFile(sPrefix + sInputFile, true);
+	algos.push_back(new GeneticAlgorithm());
+	algos[0]->ReadFile(sPrefix + sInputFile, true);
 
 	// Copy object with parsed input
 	for (int i = 1; i < NumThreads; i++)
 	{
-		algos.push_back(GeneticAlgorithm(algos[0]));
+		algos.push_back(new GeneticAlgorithm(*algos[0]));
 	}
 
 #pragma omp parallel for
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 	{
 		// Start needed threads
 		//std::cout << "Started Thread " << std::to_string(i) << std::endl;
-		algos[i].SolveVRP();
+		algos[i]->SolveVRP();
 	}
 
 	// Find best solution in all started threads
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 	int bestIndex = 0;
 	for (int i = 0; i < NumThreads; i++)
 	{
-		int fitness = algos[i].EvaluateFitness(algos[i].GetBest());
+		int fitness = algos[i]->EvaluateFitness(algos[i]->GetBest());
 		if (fitness < bestFitness)
 		{
 			bestFitness = fitness;
@@ -70,13 +70,14 @@ int main(int argc, char** argv)
 		}
 	}
 
-	const std::vector<int>& solution = algos[bestIndex].GetBest();
+	const std::vector<int>& solution = algos[bestIndex]->GetBest();
 
 	// Output - Test
 	//algo.mDepot = 0;
 	//std::vector<int> solution = { 1,2,GeneticAlgorithm::sBlank, 10, 11,12,14,GeneticAlgorithm::sBlank, 13,15,7,8 };
 	// Print best solution
-	algos[bestIndex].PrintOutput(solution);
+	std::cout << "Best solution found in Thread: " << bestIndex << std::endl;
+	algos[bestIndex]->PrintOutput(solution);
 
 	// Dummy solution
 	//std::vector<int> solution;
@@ -100,7 +101,7 @@ int main(int argc, char** argv)
 		GraphDrawer graph;
 
 		std::vector<std::pair<float, float>> cityLocations;
-		for (const auto& city : algos[bestIndex].mCities)
+		for (const auto& city : algos[bestIndex]->mCities)
 		{
 			cityLocations.push_back(std::make_pair(city.X, city.Y));
 		}
@@ -132,6 +133,11 @@ int main(int argc, char** argv)
 #endif
 	}
 
+	for (size_t i = 0; i < algos.size(); i++)
+	{
+		delete algos[i];
+	}
+	algos.clear();
 	return 0;
 
 	// TODO: Delete this old stuff
