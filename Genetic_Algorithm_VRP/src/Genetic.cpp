@@ -67,7 +67,7 @@ GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
 	, mPopulationSize(300)
-	, mIterations(10)
+	, mIterations(1000)
 	, mMutationRate(0.1)
 	, mBestSolutions(mIterations, std::vector<int>(mNumCities))
 {
@@ -573,73 +573,6 @@ std::vector<int> GeneticAlgorithm::recreateNumbers(int* inversionSequence, int s
 
 std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vector<int> mother)
 {
-	//if (father.size() != mother.size())
-	//{
-	//	std::cout << "Fuck! Length is different." << std::endl;
-	//}
-
-	//int s = father.size();	// Kind ist immer so groß wie der Vater, auch wenn Vater und Mutter unterschiedlich groß sind
-	//std::default_random_engine generator(std::random_device{}());
-	//std::uniform_int_distribution<int> distribution(0, s - 1);
-
-	//int p1, p2;
-	//p1 = distribution(generator);
-	//p2 = distribution(generator);
-
-	//// Generiere zwei zufällige Werte, die nicht gleich sein dürfen und nicht größer als der Vater sein dürfen
-	//while (p1 == p2)
-	//{
-	//	p2 = distribution(generator);
-	//}
-
-	//if (p1 > p2)
-	//{
-	//	int temp = p1;
-	//	p1 = p2;
-	//	p2 = temp;
-	//}
-
-	//std::vector<int> child(s);
-
-	//// Alles was wir vom Vater nehmen, nehmen wir nicht von der Mutter (daher löschen wir es)
-	//for (int i = p1; i <= p2; i++)
-	//{
-	//	for (int j = 0; j < (int)mother.size(); j++)
-	//	{
-	//		if (mother[j] == father[i])
-	//		{
-	//			mother.erase(mother.begin() + j);
-	//			break;
-	//		}
-	//	}
-	//}
-
-	//// Kind mit Mutter und Vater befüllen
-	//std::vector<int>::const_iterator mIter = mother.cbegin();
-	//for (int i = 0; i < s; i++)
-	//{
-	//	if (i >= p1 && i <= p2)
-	//	{
-	//		child[i] = father[i];
-	//	}
-	//	else
-	//	{
-	//		child[i] = *mIter;
-	//		if (mIter != mother.cend())
-	//		{
-	//			mIter++;
-	//		}
-	//	}
-
-	//}
-
-	////cout << "p1: " << p1 << endl;
-	////cout << "p2: " << p2 << endl;
-
-	//return child;	// Kind ist geboren
-
-
-
 	int s = father.size();
 
 	std::vector<int> child(s);
@@ -660,6 +593,11 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 		{
 			mother[i] = mNumCities + motherOffset;
 			motherOffset++;
+		}
+		if (mother[i] == father[0])
+		{
+			mother[i] = mother[0];
+			mother[0] = father[0];
 		}
 	}
 
@@ -687,13 +625,41 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 	delete[] inversionSequenceP2;
 	delete[] inversionSequenceChild;
 
-	for (int i = 0; i < s; i++)
+	int reshuffleBlanks = 0;
+
+	for (int i = 0; i < child.size(); i++)
 	{
+		child[i]--;
 		if (child[i] >= mNumCities)
 		{
 			child[i] = sBlank;
+			if (child[i - 1] == sBlank || i < 2)
+			{
+				child.erase(child.begin() + i);
+				i--;
+				reshuffleBlanks++;
+			}
 		}
 	}
+
+	while (child.back() == sBlank)
+	{
+		child.pop_back();
+		reshuffleBlanks++;
+	}
+
+	int i = 2;
+	while (reshuffleBlanks > 0)
+	{
+		if (i != (child.size() - 1) && child[i] != sBlank && child[i - 1] != sBlank)
+		{
+			child.insert(child.begin()+i, sBlank);
+			reshuffleBlanks--;
+		}
+		i++;
+	}
+
+	ValidateRoute(child, true);
 
 	return child;
 }
@@ -735,73 +701,6 @@ void GeneticAlgorithm::sort(std::vector<std::vector<int>>& population, std::vect
 
 std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<std::vector<int>> population, std::vector<int> fitness)
 {
-	//// TODO: Sortiere Population nach Fitness Value und wähle zufällig Vater + Mutter aus der besseren Hälfte
-
-	//std::vector<double> range;	// TODO: get rid of stupid range
-
-	//int routeNb = population.size();
-
-	//std::default_random_engine generator(std::random_device{}());
-
-	//std::vector<std::vector<int>> childGen;
-	//std::uniform_real_distribution<double> distribution(0, 1);
-	//for (int i = 0; i < routeNb; i++)
-	//{
-	//	double randNb;
-	//	randNb = distribution(generator);	// Zufallszahl zwischen 0 und 1
-
-	//	// Wähle zufällig einen Vater, der in einem gewissen Bereich liegt
-	//	int parFather = 0;
-	//	for (int j = 1; j < (int)range.size(); j++)
-	//	{
-	//		if (randNb <= range[0])
-	//		{
-	//			parFather = 0;
-	//			break;
-	//		}
-	//		else if (randNb > range[j - 1] && randNb <= range[j])
-	//		{
-	//			parFather = j;
-	//			break;
-	//		}
-	//	}
-
-	//	randNb = distribution(generator);
-
-	//	// Wähle zufällig eine Mutter, die in einem gewissen Bereich liegt
-	//	int parMother = 0;
-	//	for (int j = 1; j < (int)range.size(); j++)
-	//	{
-	//		if (randNb <= range[0])
-	//		{
-	//			parMother = 0;
-	//			break;
-	//		}
-	//		else if (randNb > range[j - 1] && randNb <= range[j])
-	//		{
-	//			parMother = j;
-	//			break;
-	//		}
-	//	}
-
-	//	// Vater und Mutter müssen unterschiedlich sein
-	//	while (parFather == parMother)
-	//	{
-	//		randNb = distribution(generator);
-	//		for (int j = 1; j < (int)range.size(); j++)
-	//		{
-	//			if (randNb <= range[0])
-	//			{
-	//				parMother = 0;
-	//				break;
-	//			}
-	//			else if (randNb > range[j - 1] && randNb <= range[j])
-	//			{
-	//				parMother = j;
-	//				break;
-	//			}
-	//		}
-	//	}
 
 	std::default_random_engine generator(std::random_device{}());
 	std::uniform_real_distribution<double> distribution(0, population.size()/2);
