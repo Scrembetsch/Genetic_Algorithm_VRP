@@ -70,7 +70,7 @@ GeneticAlgorithm::GeneticAlgorithm()
 	, mNumCities(0)
 	, mRouteSize(mNumCities + (sVehicles - 1))
 	, mPopulationSize(500)
-	, mIterations(1000)
+	, mIterations(100000)
 	, mMutationRate(0.2)
 	, mBestSolution()
 {
