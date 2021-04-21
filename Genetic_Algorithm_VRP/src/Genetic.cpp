@@ -8,6 +8,7 @@
 #include <cmath>
 #include <map>
 #include <stdlib.h>
+#include <algorithm>
 
 #include "Genetic.h"
 #include "PathFinder.h"
@@ -67,8 +68,9 @@ const int GeneticAlgorithm::sVehicles = 5;
 GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
+	, mRouteSize(mNumCities + (sVehicles - 1))
 	, mPopulationSize(500)
-	, mIterations(100000)
+	, mIterations(1000)
 	, mMutationRate(0.2)
 	, mBestSolution()
 {
@@ -77,6 +79,7 @@ GeneticAlgorithm::GeneticAlgorithm()
 GeneticAlgorithm::GeneticAlgorithm(const GeneticAlgorithm& ga)
 	: mDistances(nullptr)
 	, mNumCities(ga.mNumCities)
+	, mRouteSize(ga.mRouteSize)
 	, mPopulationSize(ga.mPopulationSize)
 	, mIterations(ga.mIterations)
 	, mMutationRate(ga.mMutationRate)
@@ -97,6 +100,7 @@ GeneticAlgorithm::GeneticAlgorithm(const GeneticAlgorithm& ga)
 
 GeneticAlgorithm::~GeneticAlgorithm()
 {
+	delete[] mBestSolution;
 	if (mDistances != nullptr)
 	{
 		for (int i = 0; i < mNumCities; i++)
@@ -109,32 +113,44 @@ GeneticAlgorithm::~GeneticAlgorithm()
 
 void GeneticAlgorithm::SolveVRP()
 {
-	std::vector<std::vector<int>> population = InitPopulation();
+	int** population = InitPopulation();
 
-	std::vector<int> routeLength;
+	int* routeLength = new int[mPopulationSize];
 	for (int i = 0; i < mPopulationSize; i++)
 	{
-		routeLength.push_back(EvaluateFitness(population[i]));
+		routeLength[i] = EvaluateFitness(population[i]);
 	}
+	mBestSolution = SaveBest(population, routeLength);	// Save the best of each iteration
 
 	for (int j = 0; j < mIterations; j++)
 	{
-
 		population = CreateNewGeneration(population, routeLength);
 		population = Mutate(population);
-
-		std::vector<int> routeLength;
-		for (int i = 0; i < (int)population.size(); i++)
+		int* routeLength = new int[mPopulationSize];
+		for (int i = 0; i < mPopulationSize; i++)
 		{
-			routeLength.push_back(EvaluateFitness(population[i]));
+			routeLength[i] = EvaluateFitness(population[i]);
 		}
 
-		auto temp = SaveBest(population, routeLength);	// Save the best of each iteration
-		if (mBestSolution.size() == 0 || EvaluateFitness(temp) < EvaluateFitness(mBestSolution))
+		int* temp = SaveBest(population, routeLength);	// Save the best of each iteration
+		if (j == 0 || EvaluateFitness(temp) < EvaluateFitness(mBestSolution))
 		{
+			delete[] mBestSolution;
 			mBestSolution = temp;
 		}
+		else
+		{
+			delete[] temp;
+		}
+		delete[] routeLength;
 	}
+
+	delete[] routeLength;
+	for (int i = 0; i < mPopulationSize; i++)
+	{
+		delete[] population[i];
+	}
+	delete[] population;
 }
 
 bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
@@ -186,6 +202,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 
 	// Create array
 	mNumCities = cityCounter;
+	mRouteSize = mNumCities + (sVehicles - 1);
 	mDistances = new int* [mNumCities];
 	for (int i = 0; i < mNumCities; i++)
 	{
@@ -260,12 +277,12 @@ void GeneticAlgorithm::PrintDistances() const
 	std::cout << "  \t";
 	for (int i = 0; i < mNumCities; i++)
 	{
-		std::cout << char('A' + i) << " \t";
+		std::cout << char('1' + i) << " \t";
 	}
 	std::cout << std::endl;
 	for (int i = 0; i < mNumCities; i++)
 	{
-		std::cout << char('A' + i) << " \t";
+		std::cout << char('1' + i) << " \t";
 		for (int j = 0; j < mNumCities; j++)
 		{
 			std::cout << std::to_string(mDistances[i][j]) << " \t";
@@ -284,8 +301,13 @@ void GeneticAlgorithm::PrintCities() const
 	}
 }
 
-bool GeneticAlgorithm::ValidateRoute(const std::vector<int>& route, bool assertOnError) const
+bool GeneticAlgorithm::ValidateRoute(int* route, bool assertOnError) const
 {
+	std::vector<int> temp(mRouteSize);
+	for (int i = 0; i < mRouteSize; i++)
+	{
+		temp[i] = route[i];
+	}
 	if (route[0] == sBlank)
 	{
 		std::cout << "ERROR: Depot is Blank!" << std::endl;
@@ -300,14 +322,14 @@ bool GeneticAlgorithm::ValidateRoute(const std::vector<int>& route, bool assertO
 		return false;
 	}
 
-	if (route[route.size() - 1] == sBlank)
+	if (route[mRouteSize - 1] == sBlank)
 	{
 		std::cout << "ERROR: Last Route is empty!" << std::endl;
 		assert(!assertOnError);
 		return false;
 	}
 
-	for (size_t i = 1; i < route.size(); i++)
+	for (int i = 1; i < mRouteSize; i++)
 	{
 		if (route[i - 1] == route[i])
 		{
@@ -319,10 +341,16 @@ bool GeneticAlgorithm::ValidateRoute(const std::vector<int>& route, bool assertO
 
 	std::vector<int> doubleEntries(mNumCities, 0);
 	int numBlanks = 0;
-	for (size_t i = 0; i < route.size(); i++)
+	for (int i = 0; i < mRouteSize; i++)
 	{
 		if (route[i] != sBlank)
 		{
+			if (route[i] >= mNumCities)
+			{
+				std::cout << "ERROR: Route contains invalid Id! Id: " << std::to_string(route[i]) << std::endl;
+				assert(!assertOnError);
+				return false;
+			}
 			doubleEntries[route[i]]++;
 		}
 		else
@@ -356,9 +384,13 @@ bool GeneticAlgorithm::ValidateRoute(const std::vector<int>& route, bool assertO
 	return true;
 }
 
-std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
+int** GeneticAlgorithm::InitPopulation()
 {
-	std::vector<std::vector<int>> population(mPopulationSize, std::vector<int>(mNumCities + (sVehicles - 1)));// Cities + blanks
+	int** population = new int*[mPopulationSize];
+	for (int i = 0; i < mPopulationSize; i++)
+	{
+		population[i] = new int[mRouteSize];
+	}
 	// std::vector<int>(routeVehicle1|blank|routeVehicle2|blank|routeVehicle3|blank|routeVehicle4|blank|routeVehicle5)	-> siehe Discord Paper
 	// Wichtig: gültige initiale Population erzeugen, sodass alle 5 Fahrzeuge ungefähr die gleiche Anzahl an Städten befahren   <--- Anzahl der Städte pro Route ist random weil sie nicht wirklich Einfluss auf die tatsächliche Länge der Strecke hat (Irena)
 
@@ -395,7 +427,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 		}
 
 		// Check if no base station is set and if routes of first and last vehicle is empty
-		if (population[i].front() == sBlank || population[i][1] == sBlank || population[i].back() == sBlank)
+		if (population[i][0] == sBlank || population[i][1] == sBlank || population[i][mRouteSize - 1] == sBlank)
 		{
 			// Reset loop and generate a new version for this individual
 			--i;
@@ -404,7 +436,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 
 		bool hasEmptyRoutes = false;
 		// Check if there are blanks next to each other
-		for (size_t j = 1; j < population[i].size(); j++)//start on second index to prevent out of bounds when checking previus element
+		for (int j = 1; j < mRouteSize; j++)//start on second index to prevent out of bounds when checking previus element
 		{
 			// If both previous and current element are blanks
 			if (population[i][j] == sBlank && population[i][j - 1] == sBlank)
@@ -426,7 +458,7 @@ std::vector<std::vector<int>> GeneticAlgorithm::InitPopulation()
 	return population;
 }
 
-int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) const
+int GeneticAlgorithm::EvaluateFitness(int* populationRoute) const
 {
 	if (populationRoute[0] == sBlank || populationRoute[1] == sBlank)
 	{
@@ -437,7 +469,7 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 
 	std::vector<int> routeDistances;
 
-	int s = populationRoute.size();
+	int s = mRouteSize;
 	int routeLength = 0;
 	int routePartLength = 0;
 	int currentDistance = 0;
@@ -495,15 +527,15 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 	return (weight1 * routeLength) + (weight2 * addCorrected);
 }
 
-int* GeneticAlgorithm::createInversionSequence(std::vector<int> individual)
+int* GeneticAlgorithm::createInversionSequence(int* individual)
 {
-	int* inversionSequence = new int[individual.size()];
+	int* inversionSequence = new int[mRouteSize];
 
-	for (size_t i = 0; i < individual.size(); i++)
+	for (int i = 0; i < mRouteSize; i++)
 	{
 		int counter = 0;
 
-		for (size_t j = 0; j < individual.size(); j++)
+		for (int j = 0; j < mRouteSize; j++)
 		{
 			if (individual[j] == int(i + 1))
 				break;
@@ -517,10 +549,10 @@ int* GeneticAlgorithm::createInversionSequence(std::vector<int> individual)
 	return inversionSequence;
 }
 
-std::vector<int> GeneticAlgorithm::recreateNumbers(int* inversionSequence, int size)
+int* GeneticAlgorithm::recreateNumbers(int* inversionSequence, int size)
 {
 	int* positions = new int[size];
-	std::vector<int> square(size);
+	int* square = new int[size];
 
 	for (int i = (size - 1); i >= 0; i--)
 	{
@@ -550,11 +582,11 @@ std::vector<int> GeneticAlgorithm::recreateNumbers(int* inversionSequence, int s
 	return square;
 }
 
-std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vector<int> mother)
+int* GeneticAlgorithm::Crossover(int* father, int* mother)
 {
-	int s = father.size();
+	int s = mRouteSize;
 
-	std::vector<int> child(s);
+	int* child = nullptr;
 
 	//to replace the blanks with mNumCities, mNumCities+1,...
 	//because the algorithm works only in a number sequence where each number is unique
@@ -606,7 +638,9 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 
 	int reshuffleBlanks = 0;
 
-	for (size_t i = 0; i < child.size(); i++)
+	int childSize = mRouteSize;
+
+	for (int i = 0; i < childSize; i++)
 	{
 		child[i]--;
 		if (child[i] >= mNumCities)
@@ -614,41 +648,50 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 			child[i] = sBlank;
 			if (child[i - 1] == sBlank || i < 2)
 			{
-				child.erase(child.begin() + i);
+				for (int j = i; j < childSize - 1; j++)
+				{
+					child[j] = child[j + 1];
+				}
+				childSize--;
 				i--;
 				reshuffleBlanks++;
 			}
 		}
 	}
 
-	while (child.back() == sBlank)
+	while (child[childSize - 1] == sBlank)
 	{
-		child.pop_back();
+		childSize--;
 		reshuffleBlanks++;
 	}
 
-	size_t i = 2;
+	int i = 2;
 	while (reshuffleBlanks > 0)
 	{
-		if (i != (child.size() - 1) && child[i] != sBlank && child[i - 1] != sBlank)
+		if (i != (childSize - 1) && child[i] != sBlank && child[i - 1] != sBlank)
 		{
-			child.insert(child.begin()+i, sBlank);
+
+			for (int j = childSize; j > i; j--)
+			{
+				child[j] = child[j - 1];
+			}
+			childSize++;
+			child[i] = sBlank;
 			reshuffleBlanks--;
 		}
 		i++;
 	}
-
 	//ValidateRoute(child, true);
 
 	return child;
 }
 
-void GeneticAlgorithm::sort(std::vector<std::vector<int>>& population, std::vector<int>& fitness, int l, int r)
+void GeneticAlgorithm::sort(int** population, int* fitness, int l, int r)
 {
 	int i = l;
 	int j = r;
 	int bufferFitness;
-	std::vector<int> bufferPopulation;
+	int* bufferPopulation;
 	int pivot = fitness[(l + r) / 2];
 	while (i <= j) {
 		while (fitness[i] < pivot)
@@ -678,20 +721,21 @@ void GeneticAlgorithm::sort(std::vector<std::vector<int>>& population, std::vect
 		sort(population, fitness, i, r);
 }
 
-std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<std::vector<int>> population, std::vector<int> fitness)
+int** GeneticAlgorithm::CreateNewGeneration(int** population, int* fitness)
 {
-
 	std::default_random_engine generator(std::random_device{}());
-	std::uniform_real_distribution<double> distribution(0, population.size()/2);
+	std::uniform_int_distribution<int> distribution(0, mPopulationSize/2);
 
+	sort(population, fitness, 0, mPopulationSize - 1);
 
-	std::vector<std::vector<int>> childGen;
-	sort(population, fitness, 0, fitness.size() - 1);
-
-	std::vector<std::vector<int>> new_population;
-	for (unsigned int i = 0; i < population.size() / 2; i++)
+	int** new_population = new int* [mPopulationSize];
+	for (int i = 0; i < mPopulationSize; i++)
 	{
+		new_population[i] = new int[mRouteSize];
+	}
 
+	for (int i = 0; i < mPopulationSize / 2; i++)
+	{
 		int randomNum1 = distribution(generator);
 		int randomNum2 = distribution(generator);
 		if (randomNum1 == randomNum2)
@@ -699,29 +743,56 @@ std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<
 			i--;
 			continue;
 		}
-		new_population.push_back(population[i]);
 
-		std::vector<int> father = population[randomNum1];
-		std::vector<int> mother = population[randomNum2];
+		std::copy(population[i], population[i] + mRouteSize, new_population[i]);
 
-		std::vector<int> child = Crossover(father, mother);
+		int* father = new int[mRouteSize];
+		std::copy(population[randomNum1], population[randomNum1] + mRouteSize, father);
 
-		new_population.push_back(child);
+		int* mother = new int[mRouteSize];
+		std::copy(population[randomNum2], population[randomNum2] + mRouteSize, mother);
+
+		int* child = Crossover(father, mother);
+
+		delete[] new_population[i + mPopulationSize / 2];
+		new_population[i + mPopulationSize / 2] = child;
+
+		delete[] father;
+		delete[] mother;
 	}
-	population = new_population;
-	new_population.clear();
+	for (int i = 0; i < mPopulationSize; i++)
+	{
+		delete[] population[i];
+	}
+	delete[] population;
 
-	return population;
+	return new_population;
 }
 
-std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<int>> population)
+bool GeneticAlgorithm::CheckSwap(int* route, int first, int second) const
+{
+	if (route[second] == sBlank)
+	{
+		if (first == 0 || first == 1 || first == mRouteSize - 1)
+		{
+			return false;
+		}
+		if (route[first - 1] == sBlank || route[first + 1] == sBlank)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+int** GeneticAlgorithm::Mutate(int** population)
 {
 	// Mutation-Function
 	std::default_random_engine generator(std::random_device{}());
 	std::uniform_real_distribution<double> dis(0, 1);
 	// Maximum Array Size = numCities + 4 blanks (to seperate the 5 vehicles)
 	std::uniform_int_distribution<int> disInt(0, mNumCities + sVehicles - 2);
-	int size = int(population.size());
+	int size = mRouteSize;
 	for (int i = 0; i < size; i++)
 	{
 		double r = dis(generator);
@@ -732,45 +803,43 @@ std::vector<std::vector<int>> GeneticAlgorithm::Mutate(std::vector<std::vector<i
 			second = disInt(generator);
 
 			// Don't swap the depot, the first or the last city with a blank
-			while ((first == 0 || first == 1 || first == (size - 1)) && population[i][second] == sBlank)
+			while (!CheckSwap(population[i], first, second))
 			{
 				second = disInt(generator);
 			}
 
 			// Don't swap the depot, the first or the last city  with a blank
-			while ((second == 0 || second == 1 || second == (size - 1)) && population[i][first] == sBlank)
+			while (!CheckSwap(population[i], second, first))
 			{
 				first = disInt(generator);
 			}
-
-			int temp = population[i][first];
-			population[i][first] = population[i][second];
-			population[i][second] = temp;
+			std::swap(population[i][first], population[i][second]);
 		}
 	}
 
 	return population;
 }
 
-std::vector<int> GeneticAlgorithm::SaveBest(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness)
+int* GeneticAlgorithm::SaveBest(int** population, int* fitness)
 {
 	// Save the best solution of the current population
-	std::vector<int>::const_iterator fitIter = fitness.cbegin();
+	int* fitIter = fitness;
 	int minFit = *fitIter;
 	int index = 0;
-	for (; fitIter != fitness.cend(); fitIter++)
+	for (; fitIter != fitness + mPopulationSize; fitIter++)
 	{
 		if (*fitIter < minFit)
 		{
 			minFit = *fitIter;
-			index = fitIter - fitness.cbegin();
+			index = fitIter - fitness;
 		}
 	}
-
-	return population[index];
+	int* best = new int[mRouteSize];
+	std::copy(population[index], population[index] + mRouteSize, best);
+	return best;
 }
 
-const std::vector<int>& GeneticAlgorithm::GetBest() const
+int* GeneticAlgorithm::GetBest() const
 {
 	return mBestSolution;
 	//auto currentBestIt = mBestSolutions.begin();
@@ -790,7 +859,7 @@ const std::vector<int>& GeneticAlgorithm::GetBest() const
 	//return *currentBestIt;
 }
 
-void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
+void GeneticAlgorithm::PrintOutput(int* solution) const
 {
 	// Output
 	// Total distance of all vehicles: (Total distance of all 5 vehicles)
@@ -808,9 +877,9 @@ void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
 	int vehicleDistance = 0;
 	int vehicleCounter = 0;
 
-	for (size_t i = 1; i <= solution.size(); i++)
+	for (int i = 1; i <= mRouteSize; i++)
 	{
-		if (i == solution.size() || solution[i] == sBlank)
+		if (i == mRouteSize || solution[i] == sBlank)
 		{
 			if (vehicleDistance == 0)
 			{

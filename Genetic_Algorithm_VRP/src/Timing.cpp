@@ -63,7 +63,7 @@ void Timing::print(const bool prettyPrint) const {
 	auto it = mResults.begin();
 	while(it != mResults.end()) {
 		if (prettyPrint) {
-			std::cout << it->first << ": " << parseDate((int) it->second.count()) << std::endl;
+			std::cout <</* it->first << ": " <<*/ parseDate((int) it->second.count()) << std::endl;
 		} else {
 			std::cout /*<< it->first << ": "*/ << it->second.count() << "ms" << std::endl;
 		}
