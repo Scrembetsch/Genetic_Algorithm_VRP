@@ -51,7 +51,7 @@ public:
 	double	mMutationRate;			// Probability of mutation
 
 	std::vector<City>				mCities;
-	std::vector<std::vector<int>>	mBestSolutions;
+	std::vector<int>				mBestSolution;
 
 private:
 	void PrintDistances() const;

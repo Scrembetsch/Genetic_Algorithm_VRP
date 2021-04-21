@@ -70,7 +70,7 @@ GeneticAlgorithm::GeneticAlgorithm()
 	, mPopulationSize(500)
 	, mIterations(100000)
 	, mMutationRate(0.2)
-	, mBestSolutions(mIterations, std::vector<int>())
+	, mBestSolution()
 {
 }
 
@@ -81,7 +81,7 @@ GeneticAlgorithm::GeneticAlgorithm(const GeneticAlgorithm& ga)
 	, mIterations(ga.mIterations)
 	, mMutationRate(ga.mMutationRate)
 	, mCities(ga.mCities)
-	, mBestSolutions(mIterations, std::vector<int>())
+	, mBestSolution(ga.mBestSolution)
 
 {
 	mDistances = new int* [mNumCities];
@@ -129,7 +129,11 @@ void GeneticAlgorithm::SolveVRP()
 			routeLength.push_back(EvaluateFitness(population[i]));
 		}
 
-		mBestSolutions[j] = SaveBest(population, routeLength);	// Save the best of each iteration
+		auto temp = SaveBest(population, routeLength);	// Save the best of each iteration
+		if (mBestSolution.size() == 0 || EvaluateFitness(temp) < EvaluateFitness(mBestSolution))
+		{
+			mBestSolution = temp;
+		}
 	}
 }
 
@@ -768,21 +772,22 @@ std::vector<int> GeneticAlgorithm::SaveBest(const std::vector<std::vector<int>>&
 
 const std::vector<int>& GeneticAlgorithm::GetBest() const
 {
-	auto currentBestIt = mBestSolutions.begin();
-	int currentBest = INT32_MAX;
+	return mBestSolution;
+	//auto currentBestIt = mBestSolutions.begin();
+	//int currentBest = INT32_MAX;
 
-	// Find the best (= smallest) Fitness Value across all previously saved solutions
-	for (auto it = mBestSolutions.begin(); it != mBestSolutions.end(); it++)
-	{
-		int fitness = EvaluateFitness(*it);
-		if (fitness < currentBest)
-		{
-			currentBest = fitness;
-			currentBestIt = it;
-		}
-	}
+	//// Find the best (= smallest) Fitness Value across all previously saved solutions
+	//for (auto it = mBestSolutions.begin(); it != mBestSolutions.end(); it++)
+	//{
+	//	int fitness = EvaluateFitness(*it);
+	//	if (fitness < currentBest)
+	//	{
+	//		currentBest = fitness;
+	//		currentBestIt = it;
+	//	}
+	//}
 
-	return *currentBestIt;
+	//return *currentBestIt;
 }
 
 void GeneticAlgorithm::PrintOutput(const std::vector<int>& solution) const
