@@ -68,7 +68,7 @@ GeneticAlgorithm::GeneticAlgorithm()
 	: mDistances(nullptr)
 	, mNumCities(0)
 	, mPopulationSize(500)
-	, mIterations(100000)
+	, mIterations(1000000)
 	, mMutationRate(0.2)
 	, mBestSolutions(mIterations, std::vector<int>())
 {
@@ -428,8 +428,8 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 	{
 		return INT32_MAX;
 	}
-	float weight1 = 0.5;
-	float weight2 = 0.5;
+	float weight1 = 0.6;
+	float weight2 = 0.4;
 
 	std::vector<int> routeDistances;
 
@@ -491,6 +491,9 @@ int GeneticAlgorithm::EvaluateFitness(const std::vector<int>& populationRoute) c
 	return (weight1 * routeLength) + (weight2 * addCorrected);
 }
 
+// Creates an array in which the number at a certain index indicates 
+// how many numbers in the converted array (which were left of the number 
+// of the index position) were greater than the number itself, formula source: https://user.ceng.metu.edu.tr/~ucoluk/research/publications/tspnew.pdf
 int* GeneticAlgorithm::createInversionSequence(std::vector<int> individual)
 {
 	int* inversionSequence = new int[individual.size()];
@@ -513,6 +516,7 @@ int* GeneticAlgorithm::createInversionSequence(std::vector<int> individual)
 	return inversionSequence;
 }
 
+// Inverse function of "createInversionSequence()"
 std::vector<int> GeneticAlgorithm::recreateNumbers(int* inversionSequence, int size)
 {
 	int* positions = new int[size];
@@ -546,17 +550,18 @@ std::vector<int> GeneticAlgorithm::recreateNumbers(int* inversionSequence, int s
 	return square;
 }
 
+//Create a child from given father and mother
 std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vector<int> mother)
 {
 	int s = father.size();
 
 	std::vector<int> child(s);
 
-	//to replace the blanks with mNumCities, mNumCities+1,...
-	//because the algorithm works only in a number sequence where each number is unique
 	int fatherOffset = 0;
 	int motherOffset = 0;
 
+	//to replace the blanks with mNumCities, mNumCities+1,...
+	//because the algorithm works only in a number sequence where each number is unique
 	for (int i=0; i < s; i++)
 	{
 		if (father[i] == sBlank)
@@ -576,12 +581,15 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 		}
 	}
 
+	//create inversion sequence of father
 	int* inversionSequenceP1;
 	inversionSequenceP1 = createInversionSequence(father);
 
+	//create inversion sequence of mother
 	int* inversionSequenceP2;
 	inversionSequenceP2 = createInversionSequence(mother);
 
+	//crossover point somewhere between 20% and 80%
 	int min = s * 0.2;
 	int max = s * 0.8;
 
@@ -591,9 +599,11 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 	int crossoverPoint = distribution(generator) + 1;
 	int* inversionSequenceChild = new int[s];
 
+	//create child based on crossover point
 	std::copy(inversionSequenceP1, inversionSequenceP1 + crossoverPoint, inversionSequenceChild);
 	std::copy(inversionSequenceP2 + crossoverPoint, inversionSequenceP2 + s, inversionSequenceChild + crossoverPoint);
 
+	//create usable child sequence
 	child = recreateNumbers(inversionSequenceChild, s);
 
 	delete[] inversionSequenceP1;
@@ -607,8 +617,8 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 		child[i]--;
 		if (child[i] >= mNumCities)
 		{
-			child[i] = sBlank;
-			if (child[i - 1] == sBlank || i < 2)
+			child[i] = sBlank; //reset route delimiters to sBlank
+			if (child[i - 1] == sBlank || i < 2) //avoid empty routes
 			{
 				child.erase(child.begin() + i);
 				i--;
@@ -617,6 +627,7 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 		}
 	}
 
+	//last element is not supposed to be sBlank, because then the last route would be empty
 	while (child.back() == sBlank)
 	{
 		child.pop_back();
@@ -624,9 +635,9 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 	}
 
 	size_t i = 2;
-	while (reshuffleBlanks > 0)
+	while (reshuffleBlanks > 0) //put back as many route delimiters as had to be deleted before
 	{
-		if (i != (child.size() - 1) && child[i] != sBlank && child[i - 1] != sBlank)
+		if (i != (child.size() - 1) && child[i] != sBlank && child[i - 1] != sBlank)//avoid empty routes
 		{
 			child.insert(child.begin()+i, sBlank);
 			reshuffleBlanks--;
@@ -634,11 +645,10 @@ std::vector<int> GeneticAlgorithm::Crossover(std::vector<int> father, std::vecto
 		i++;
 	}
 
-	//ValidateRoute(child, true);
-
 	return child;
 }
 
+//sort the given population based on the associated fitness value via quicksort
 void GeneticAlgorithm::sort(std::vector<std::vector<int>>& population, std::vector<int>& fitness, int l, int r)
 {
 	int i = l;
@@ -676,12 +686,13 @@ void GeneticAlgorithm::sort(std::vector<std::vector<int>>& population, std::vect
 
 std::vector<std::vector<int>> GeneticAlgorithm::CreateNewGeneration(std::vector<std::vector<int>> population, std::vector<int> fitness)
 {
-
+	//set the random generator to pick only from the better half of the population
 	std::default_random_engine generator(std::random_device{}());
 	std::uniform_real_distribution<double> distribution(0, population.size()/2);
 
-
 	std::vector<std::vector<int>> childGen;
+
+	//sort population based on the fitness value
 	sort(population, fitness, 0, fitness.size() - 1);
 
 	std::vector<std::vector<int>> new_population;
