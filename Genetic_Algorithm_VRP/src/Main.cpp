@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 	{
 		algos.push_back(new GeneticAlgorithm(*algos[0]));
 	}
-
+	Timing::getInstance()->startComputation();
 #pragma omp parallel for
 	for (int i = 0; i < NumThreads; i++)
 	{
@@ -56,6 +56,11 @@ int main(int argc, char** argv)
 		//std::cout << "Started Thread " << std::to_string(i) << std::endl;
 		algos[i]->SolveVRP();
 	}
+	Timing::getInstance()->stopComputation();
+
+	std::cout << "Calculated " << algos[0]->mIterations << " iterations in ";
+	Timing::getInstance()->print(true);
+	std::cout << std::endl;
 
 	// Find best solution in all started threads
 	int bestFitness = INT32_MAX;
@@ -70,7 +75,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	const std::vector<int>& solution = algos[bestIndex]->GetBest();
+	int* solution = algos[bestIndex]->GetBest();
 
 	// Output - Test
 	//algo.mDepot = 0;
@@ -78,7 +83,6 @@ int main(int argc, char** argv)
 	// Print best solution
 	std::cout << "Best solution found in Thread: " << bestIndex << std::endl;
 	algos[bestIndex]->PrintOutput(solution);
-
 	// Dummy solution
 	//std::vector<int> solution;
 	//for (int i = 0; i < algos[0].mNumCities; i++)
@@ -113,7 +117,7 @@ int main(int argc, char** argv)
 		int route = 0;
 		routes.push_back(std::vector<int>());
 		routes[0].push_back(solution[0]);
-		for (size_t i = 1; i < solution.size(); i++)
+		for (size_t i = 1; i < algos[bestIndex]->mRouteSize; i++)
 		{
 			if (solution[i] == GeneticAlgorithm::sBlank)
 			{
@@ -140,6 +144,7 @@ int main(int argc, char** argv)
 		delete algos[i];
 	}
 	algos.clear();
+	Timing::getInstance()->clear();
 	return 0;
 }
 

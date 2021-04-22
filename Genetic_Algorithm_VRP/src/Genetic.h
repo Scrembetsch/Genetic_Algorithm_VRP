@@ -32,29 +32,31 @@ public:
 
 	bool ReadFile(std::string path, bool calculateMissingRoutes);
 	void SolveVRP();
-	std::vector<std::vector<int>> InitPopulation();
-	int EvaluateFitness(const std::vector<int>& populationRoute) const;
-	std::vector<std::vector<int>> CreateNewGeneration(std::vector<std::vector<int>> population, std::vector<int> fitness);
-	int* createInversionSequence(std::vector<int> individual);
-	std::vector<int> recreateNumbers(int* inversionSequence, int size);
-	std::vector<int> Crossover(std::vector<int> father, std::vector<int> mother);
-	void sort(std::vector<std::vector<int>>& population, std::vector<int>& fitness, int l, int r);
-	std::vector<std::vector<int>> Mutate(std::vector<std::vector<int>> population);
-	std::vector<int> SaveBest(const std::vector<std::vector<int>>& population, const std::vector<int>& fitness);
-	const std::vector<int>& GetBest() const;
-	void PrintOutput(const std::vector<int>& solution) const;
+	int** InitPopulation();
+	int EvaluateFitness(int* populationRoute) const;
+	int** CreateNewGeneration(int** population, int* fitness);
+	int* createInversionSequence(int* individual);
+	int* recreateNumbers(int* inversionSequence, int size);
+	int* Crossover(int* father, int* mother);
+	void sort(int** population, int* fitness, int l, int r);
+	bool CheckSwap(int* router, int first, int second) const;
+	int** Mutate(int** population);
+	int* SaveBest(int** population, int* fitness);
+	int* GetBest() const;
+	void PrintOutput(int* solution) const;
 
 	int**	mDistances;				// All distances between cities
 	int		mNumCities;				// Number of cities
+	int		mRouteSize;				// Length of Route array
 	int		mPopulationSize;		// Initial population size
 	int		mIterations;			// Number of iterations
 	double	mMutationRate;			// Probability of mutation
 
 	std::vector<City>				mCities;
-	std::vector<std::vector<int>>	mBestSolutions;
+	int*							mBestSolution;
 
 private:
 	void PrintDistances() const;
 	void PrintCities() const;
-	bool ValidateRoute(const std::vector<int>& route, bool assertOnError) const;
+	bool ValidateRoute(int* route, bool assertOnError) const;
 };
