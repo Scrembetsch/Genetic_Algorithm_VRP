@@ -391,9 +391,8 @@ int** GeneticAlgorithm::InitPopulation()
 	{
 		population[i] = new int[mRouteSize];
 	}
-	// std::vector<int>(routeVehicle1|blank|routeVehicle2|blank|routeVehicle3|blank|routeVehicle4|blank|routeVehicle5)	-> siehe Discord Paper
-	// Wichtig: gültige initiale Population erzeugen, sodass alle 5 Fahrzeuge ungefähr die gleiche Anzahl an Städten befahren   <--- Anzahl der Städte pro Route ist random weil sie nicht wirklich Einfluss auf die tatsächliche Länge der Strecke hat (Irena)
-
+	// std::vector<int>(baseStation|routeVehicle1|blank|routeVehicle2|blank|routeVehicle3|blank|routeVehicle4|blank|routeVehicle5|...)	-> https://www.researchgate.net/publication/220743156_Vehicle_Routing_Problem_Doing_It_The_Evolutionary_Way
+	// Creates valid population (valid: base station set & no route empty) - number of cities per route can vary (distance between 2 cities on two sides of the country can be bigger than the distance between 5 close cities -> let darwin do his thing)
 	std::default_random_engine generator(std::random_device{}());
 
 	int city;
@@ -436,7 +435,7 @@ int** GeneticAlgorithm::InitPopulation()
 
 		bool hasEmptyRoutes = false;
 		// Check if there are blanks next to each other
-		for (int j = 1; j < mRouteSize; j++)//start on second index to prevent out of bounds when checking previus element
+		for (int j = 1; j < mRouteSize; j++)// Start on second index to prevent out of bounds when checking previous element
 		{
 			// If both previous and current element are blanks
 			if (population[i][j] == sBlank && population[i][j - 1] == sBlank)
