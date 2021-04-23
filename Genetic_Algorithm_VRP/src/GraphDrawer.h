@@ -11,6 +11,7 @@ class GraphDrawer
 	const std::vector<sf::Color> sColors = {sf::Color::Cyan, sf::Color::Blue, sf::Color::Green, sf::Color::Magenta, sf::Color::Red, sf::Color::Yellow};
 	int mWindowHeight = 720;
 	int mWindowWidth = 1280;
+
 public:
 	void Draw();
 	void SetPoints(const std::vector<std::pair<float, float>>& points);

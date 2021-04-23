@@ -70,8 +70,8 @@ GeneticAlgorithm::GeneticAlgorithm()
 	, mNumCities(0)
 	, mRouteSize(mNumCities + (sVehicles - 1))
 	, mPopulationSize(500)
-	, mIterations(10000)
-	, mMutationRate(0.2)
+	, mIterations(100000)
+	, mMutationRate(0.5)
 	, mBestSolution()
 {
 }
@@ -120,7 +120,7 @@ void GeneticAlgorithm::SolveVRP()
 	{
 		routeLength[i] = EvaluateFitness(population[i]);
 	}
-	mBestSolution = SaveBest(population, routeLength);	// Save the best of each iteration
+	mBestSolution = SaveBest(population, routeLength);	// Save best from initial population
 
 	for (int j = 0; j < mIterations; j++)
 	{
@@ -165,7 +165,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 	while (getline(file, line))
 	{
 		size_t commentIndex = line.find('%');
-		if (commentIndex == 0U)	// Check if whole line is comment
+		if (commentIndex == 0U)	// Check if a comment exists in this line
 		{
 			continue;
 		}
@@ -200,9 +200,11 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 	}
 	file.close();
 
-	// Create array
+	// Save variables
 	mNumCities = cityCounter;
 	mRouteSize = mNumCities + (sVehicles - 1);
+
+	// Created adj. matrix
 	mDistances = new int* [mNumCities];
 	for (int i = 0; i < mNumCities; i++)
 	{
@@ -213,6 +215,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 		}
 	}
 
+	// Store values in adj. matrix
 	for (const auto& road : roads)
 	{
 		int index1 = cityMap.at(road.City1);
@@ -222,8 +225,8 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 		mDistances[index2][index1] = road.Distance;
 	}
 
-	//PrintCities();
-	//PrintDistances();
+	// Calculate missing routes using a path finder
+	// Is done to have less work in crossover and mutate
 	if (calculateMissingRoutes)
 	{
 		// Create adjMatrix for PathFinder
@@ -250,23 +253,7 @@ bool GeneticAlgorithm::ReadFile(std::string path, bool calculateMissingRoutes)
 				mDistances[i][j] = dist[j];
 			}
 		}
-
-		//PrintDistances();
 	}
-	// Debug print
-	//std::cout << "Roads:" << std::endl;
-	//for (const auto& road : roads)
-	//{
-	//	std::cout << road.City1 << "," << road.City2 << "," << std::to_string(road.Distance) << ";" << std::endl;
-	//}
-	//std::cout << "--------------------------" << std::endl;
-	//std::cout << "Cities:" << std::endl;
-	//for (const auto& city : cities)
-	//{
-	//	std::cout << city.first << ";" << std::endl;
-	//}
-	//std::cout << "--------------------------" << std::endl;
-
 	return true;
 }
 
@@ -277,12 +264,12 @@ void GeneticAlgorithm::PrintDistances() const
 	std::cout << "  \t";
 	for (int i = 0; i < mNumCities; i++)
 	{
-		std::cout << char('1' + i) << " \t";
+		std::cout << char('A' + i) << " \t";	// Print placeholder city names
 	}
 	std::cout << std::endl;
 	for (int i = 0; i < mNumCities; i++)
 	{
-		std::cout << char('1' + i) << " \t";
+		std::cout << char('A' + i) << " \t";
 		for (int j = 0; j < mNumCities; j++)
 		{
 			std::cout << std::to_string(mDistances[i][j]) << " \t";
@@ -303,6 +290,8 @@ void GeneticAlgorithm::PrintCities() const
 
 bool GeneticAlgorithm::ValidateRoute(int* route, bool assertOnError) const
 {
+	// Is used to find invalid routes
+
 	std::vector<int> temp(mRouteSize);
 	for (int i = 0; i < mRouteSize; i++)
 	{
@@ -392,7 +381,7 @@ int** GeneticAlgorithm::InitPopulation()
 		population[i] = new int[mRouteSize];
 	}
 	// std::vector<int>(baseStation|routeVehicle1|blank|routeVehicle2|blank|routeVehicle3|blank|routeVehicle4|blank|routeVehicle5|...)	-> https://www.researchgate.net/publication/220743156_Vehicle_Routing_Problem_Doing_It_The_Evolutionary_Way
-	// Creates valid population (valid: base station set & no route empty) - number of cities per route can vary (distance between 2 cities on two sides of the country can be bigger than the distance between 5 close cities -> let darwin do his thing)
+	// Creates valid population (valid: base station set & no route empty) - number of cities per route can vary (distance between 2 cities on two sides of the country can be bigger than the distance between 5 close cities -> let Darwin do his thing)
 	std::default_random_engine generator(std::random_device{}());
 
 	int city;
@@ -457,20 +446,20 @@ int** GeneticAlgorithm::InitPopulation()
 	return population;
 }
 
-//Claculates the Fitness of a given Route with the overall Distance of this Route and the average difference in Distance between the Trucks.
+//Calculates the Fitness of a given Route with the overall Distance of this Route and the average difference in Distance between the Trucks.
 //These Values get multiplied by specific Fitness Weights and are added together. The smaller the resulting number, the better the given route.
 
 int GeneticAlgorithm::EvaluateFitness(int* populationRoute) const
 {
-	//Check for invalid Route. Set to max Fitnessvalue
+	//Check for invalid Route. Set to max Fitness value
 	if (populationRoute[0] == sBlank || populationRoute[1] == sBlank)
 	{
 		return INT32_MAX;
 	}
 
-	//Weights for the Fitness Claculation
-	float weight1 = 0.5;
-	float weight2 = 0.5;
+	//Weights for the Fitness Calculation
+	float weight1 = 0.3;	// Weight of overall distance
+	float weight2 = 0.7;	// Weight of average distance
 
 	std::vector<int> routeDistances;
 
@@ -510,7 +499,7 @@ int GeneticAlgorithm::EvaluateFitness(int* populationRoute) const
 			//Check if there are no two blanks after one another
 			if (populationRoute[i - 1] != sBlank && populationRoute[i + 1] != sBlank)
 			{
-				//Cakculate the Distance back to the Start
+				//Calculate the Distance back to the Start
 				currentDistance = mDistances[populationRoute[i - 1]][populationRoute[0]];
 				routeLength += currentDistance;
 				routePartLength += currentDistance;
@@ -540,8 +529,8 @@ int GeneticAlgorithm::EvaluateFitness(int* populationRoute) const
 	return (weight1 * routeLength) + (weight2 * addCorrected);
 }
 
-// Creates an array in which the number at a certain index indicates 
-// how many numbers in the converted array (which were left of the number 
+// Creates an array in which the number at a certain index indicates
+// how many numbers in the converted array (which were left of the number
 // of the index position) were greater than the number itself, formula source: https://user.ceng.metu.edu.tr/~ucoluk/research/publications/tspnew.pdf
 int* GeneticAlgorithm::createInversionSequence(int* individual)
 {
@@ -709,7 +698,7 @@ int* GeneticAlgorithm::Crossover(int* father, int* mother)
 	return child;
 }
 
-//sort the population based on the associated fitness values via quicksort
+//sort the population based on the associated fitness values via quick sort
 void GeneticAlgorithm::sort(int** population, int* fitness, int l, int r)
 {
 	int i = l;
@@ -819,7 +808,7 @@ int** GeneticAlgorithm::Mutate(int** population)
 	// Mutation-Function
 	std::default_random_engine generator(std::random_device{}());
 	std::uniform_real_distribution<double> dis(0, 1);
-	// Maximum Array Size = numCities + 4 blanks (to seperate the 5 vehicles)
+	// Maximum Array Size = numCities + 4 blanks (to separate the 5 vehicles)
 	std::uniform_int_distribution<int> disInt(0, mNumCities + sVehicles - 2);
 	int size = mRouteSize;
 	for (int i = 0; i < size; i++)
@@ -871,30 +860,15 @@ int* GeneticAlgorithm::SaveBest(int** population, int* fitness)
 int* GeneticAlgorithm::GetBest() const
 {
 	return mBestSolution;
-	//auto currentBestIt = mBestSolutions.begin();
-	//int currentBest = INT32_MAX;
-
-	//// Find the best (= smallest) Fitness Value across all previously saved solutions
-	//for (auto it = mBestSolutions.begin(); it != mBestSolutions.end(); it++)
-	//{
-	//	int fitness = EvaluateFitness(*it);
-	//	if (fitness < currentBest)
-	//	{
-	//		currentBest = fitness;
-	//		currentBestIt = it;
-	//	}
-	//}
-
-	//return *currentBestIt;
 }
 
 void GeneticAlgorithm::PrintOutput(int* solution) const
 {
 	// Output
-	// Total distance of all vehicles: (Total distance of all 5 vehicles)
-	// Vehicle 1 (Total distance of vehicle 1): Depot -> CityA -> CityB -> etc. ... -> Depot
-	// Vehicle 2 (Total distance of vehicle 2): Depot-> StadtX -> StadtY -> etc. ... -> Depot
-	// Vehicle 3 (Total distance of vehicle 3): etc.
+	// Total distance of all vehicles: <Total distance of all 5 vehicles>|<Average distance of all 5 vehicles>
+	// Vehicle 1 <Total distance of vehicle 1>|<Distance difference to average distance>: Depot -> CityA -> CityB -> etc. ... -> Depot
+	// Vehicle 2 <Total distance of vehicle 2>|<Distance difference to average distance>: Depot-> StadtX -> StadtY -> etc. ... -> Depot
+	// Vehicle 3 <Total distance of vehicle 3>|<Distance difference to average distance>: etc.
 	// etc.
 
 	ValidateRoute(solution, false);

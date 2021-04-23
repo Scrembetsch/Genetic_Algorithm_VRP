@@ -15,6 +15,7 @@ public:
 	{
 	}
 
+	// Gets array position of argument
 	int GetPosition(const std::string& shortArg = "", const std::string& longArg = "")
 	{
 		for (int i = 0; i < argc; i++)
@@ -29,11 +30,13 @@ public:
 		return -1;
 	}
 
+	// Checks if argument exists
 	bool CheckIfExists(const std::string& shortArg = "", const std::string& longArg = "")
 	{
 		return GetPosition(shortArg, longArg) != -1;
 	}
 
+	// Retrieves string after argument
 	std::string GetString(const std::string& shortArg = "", const std::string& longArg = "", const std::string& defaultValue = "")
 	{
 		int pos = GetPosition(shortArg, longArg);
@@ -44,6 +47,7 @@ public:
 		return std::string(argv[pos + 1]);
 	}
 
+	// Retrieves int after argument
 	int GetInt(const std::string& shortArg = "", const std::string& longArg = "", int defaultValue = -1, int base = 10)
 	{
 		int pos = GetPosition(shortArg, longArg);
@@ -54,6 +58,7 @@ public:
 		return std::stoi(std::string(argv[pos + 1]), nullptr, base);
 	}
 
+	// Retrieves float after argument
 	float GetFloat(const std::string& shortArg = "", const std::string& longArg = "", float defaultValue = -1.0f)
 	{
 		int pos = GetPosition(shortArg, longArg);
@@ -64,6 +69,7 @@ public:
 		return std::stof(std::string(argv[pos + 1]));
 	}
 
+	// Retrieves bool value (true & 1 -> true; everything else -> false)
 	float GetBool(const std::string& shortArg = "", const std::string& longArg = "", bool defaultValue = false)
 	{
 		int pos = GetPosition(shortArg, longArg);

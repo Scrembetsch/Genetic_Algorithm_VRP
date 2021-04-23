@@ -3,6 +3,7 @@
 #include "Util.h"
 
 #ifdef _WIN64
+// Receive all cities (vector of points with x,y pair)
 void GraphDrawer::SetPoints(const std::vector<std::pair<float, float>>& points)
 {
 	mPoints = points;
@@ -15,6 +16,7 @@ void GraphDrawer::SetPoints(const std::vector<std::pair<float, float>>& points)
 	}
 }
 
+// Rescale points to fit/fill window
 void GraphDrawer::RescalePoints()
 {
 	std::pair<float, float> min = std::make_pair(99999, 999999);
@@ -51,6 +53,7 @@ void GraphDrawer::RescalePoints()
 	}
 }
 
+// Receive route of every vehicle
 void GraphDrawer::SetRoutes(const std::vector<std::vector<int>>& routes)
 {
 	mRoutes = std::vector<sf::VertexArray>(routes.size());
@@ -65,6 +68,8 @@ void GraphDrawer::SetRoutes(const std::vector<std::vector<int>>& routes)
 	}
 }
 
+
+// Sets depot point
 void GraphDrawer::SetDepot(size_t index)
 {
 	mCircles[index].setFillColor(sf::Color::Yellow);
@@ -73,11 +78,13 @@ void GraphDrawer::SetDepot(size_t index)
 	mCircles[index].setPosition(mPoints[index].first - radius, mPoints[index].second - radius);
 }
 
+// Help function to iterate through SFML colors
 const sf::Color& GraphDrawer::GetLineColor(size_t index)
 {
 	return sColors[Util::Clamp(index, size_t(0U), sColors.size() - 1U)];
 }
 
+// Draw all cities and roads
 void GraphDrawer::Draw()
 {
 	sf::RenderWindow window(sf::VideoMode(mWindowWidth, mWindowHeight), "VRP");

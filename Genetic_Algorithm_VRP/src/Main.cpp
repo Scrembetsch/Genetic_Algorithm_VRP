@@ -27,8 +27,8 @@ void LoadArguments(int argc, char** argv)
 {
 	ArgumentParser parser(argc, argv);
 
-	NumThreads = parser.GetInt("-t", "--threads", std::thread::hardware_concurrency());
-	VisualMode = parser.CheckIfExists("-v", "--visual");
+	NumThreads = parser.GetInt("-t", "--threads", std::thread::hardware_concurrency());	// Get number of allowed threads, default is maximum number of threads
+	VisualMode = parser.CheckIfExists("-v", "--visual");	// Check if visual output should be shown (Only available on Windows x64)
 
 	std::cout << "Using Threads: " << NumThreads << std::endl << std::endl;
 }
@@ -77,33 +77,16 @@ int main(int argc, char** argv)
 
 	int* solution = algos[bestIndex]->GetBest();
 
-	// Output - Test
-	//algo.mDepot = 0;
-	//std::vector<int> solution = { 1,2,GeneticAlgorithm::sBlank, 10, 11,12,14,GeneticAlgorithm::sBlank, 13,15,7,8 };
-	// Print best solution
 	std::cout << "Best solution found in Thread: " << bestIndex << std::endl;
 	algos[bestIndex]->PrintOutput(solution);
-	// Dummy solution
-	//std::vector<int> solution;
-	//for (int i = 0; i < algos[0].mNumCities; i++)
-	//{
-	//	solution.push_back(i);
-	//}
-	//std::random_device rd;
-	//std::mt19937 g(rd());
-	//std::shuffle(solution.begin(), solution.end(), g);
-	//int bestIndex = 0;
-	//solution.insert(solution.begin() + 1, GeneticAlgorithm::sBlank);
-	//solution.insert(solution.begin() + 5, GeneticAlgorithm::sBlank);
-	//solution.insert(solution.begin() + 10, GeneticAlgorithm::sBlank);
-	//solution.insert(solution.begin() + 14, GeneticAlgorithm::sBlank);
-	//solution.insert(solution.begin() + 18, GeneticAlgorithm::sBlank);
 
 	if (VisualMode)
 	{
 #ifdef _WIN64
+		// Set all graph values and draw graph
 		GraphDrawer graph;
 
+		// Convert all cities with their coordinates
 		std::vector<std::pair<float, float>> cityLocations;
 		for (const auto& city : algos[bestIndex]->mCities)
 		{
@@ -113,6 +96,7 @@ int main(int argc, char** argv)
 		graph.SetDepot(solution[0]);
 		graph.RescalePoints();
 
+		// Convert all routes of all vehicles
 		std::vector<std::vector<int>> routes;
 		int route = 0;
 		routes.push_back(std::vector<int>());
@@ -139,6 +123,7 @@ int main(int argc, char** argv)
 #endif
 	}
 
+	// Cleanup
 	for (size_t i = 0; i < algos.size(); i++)
 	{
 		delete algos[i];
