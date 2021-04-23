@@ -457,14 +457,20 @@ int** GeneticAlgorithm::InitPopulation()
 	return population;
 }
 
+//Claculates the Fitness of a given Route with the overall Distance of this Route and the average difference in Distance between the Trucks.
+//These Values get multiplied by specific Fitness Weights and are added together. The smaller the resulting number, the better the given route.
+
 int GeneticAlgorithm::EvaluateFitness(int* populationRoute) const
 {
+	//Check for invalid Route. Set to max Fitnessvalue
 	if (populationRoute[0] == sBlank || populationRoute[1] == sBlank)
 	{
 		return INT32_MAX;
 	}
-	float weight1 = 0.6;
-	float weight2 = 0.4;
+
+	//Weights for the Fitness Claculation
+	float weight1 = 0.5;
+	float weight2 = 0.5;
 
 	std::vector<int> routeDistances;
 
@@ -478,34 +484,40 @@ int GeneticAlgorithm::EvaluateFitness(int* populationRoute) const
 	int averageDistanceDifference = 0;
 	int addCorrected = 0;
 
+	//Iterate all Points in Route
 	for (int i = 1; i < (s - 1); i++)
 	{
+		//When Current and next Point not Blank. Calculate the Distance between them
 		if (populationRoute[i] != sBlank)
 		{
 			if (populationRoute[i - 1] != sBlank)
 			{
 				currentDistance = mDistances[populationRoute[i]][populationRoute[i - 1]];
+				//Add currently calculated Distance to the Distance of all Routs together
 				routeLength += currentDistance;
+				//Add currently calculated Distance to the Distance for this Route
 				routePartLength += currentDistance;
 			}
-			routeLength += currentDistance;
-			routePartLength += currentDistance;
 		}
 		else
 		{
+			//Check if Route is Valid
 			if (populationRoute[i + 1] == sBlank)
 			{
 				return INT32_MAX;
 			}
 
+			//Check if there are no two blanks after one another
 			if (populationRoute[i - 1] != sBlank && populationRoute[i + 1] != sBlank)
 			{
+				//Cakculate the Distance back to the Start
 				currentDistance = mDistances[populationRoute[i - 1]][populationRoute[0]];
 				routeLength += currentDistance;
 				routePartLength += currentDistance;
 
 				routeDistances.push_back(routePartLength);
 
+				//Prepare for next Truck on this Route
 				currentDistance = mDistances[populationRoute[0]][populationRoute[i + 1]];
 				routeLength += currentDistance;
 				routePartLength = currentDistance;
@@ -513,14 +525,16 @@ int GeneticAlgorithm::EvaluateFitness(int* populationRoute) const
 		}
 	}
 	routeDistances.push_back(routePartLength);
-	averageTruckDistance = routeLength / sVehicles;
 
+	//Calculate average difference in Distance between the Trucks
+	averageTruckDistance = routeLength / sVehicles;
 	for (int distance : routeDistances)
 	{
 		distanceDifference += std::abs(averageTruckDistance - distance);
 	}
-
 	averageDistanceDifference = distanceDifference / sVehicles;
+
+	//Correct average Distance to be the same size as the route Length
 	addCorrected = averageDistanceDifference * 10;
 
 	return (weight1 * routeLength) + (weight2 * addCorrected);
